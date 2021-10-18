@@ -44,24 +44,17 @@ in D3.js . Even if something is not in a function, it shouldn't be too hard to c
 // other than '0' and '1's
 
 class Bucket {
-  constructor() {
-    this.data = []
-    this.localDepth = 1;
-  }
-
-  insert(input) {
-    this.data.push(input);
+  constructor(localDepth = 1) {
+    this.data = {}
+    this.localDepth = localDepth;
   }
 }
 
 class ExtendibleHashingTable {
   constructor() {
-    this.globalDepth = 1;
+    this.globalDepth = 0;
     this.bucketSize = 2;
-    this.directories = {
-      "0": new Bucket(),
-      "1": new Bucket(),
-    }
+    this.directories = [];
   }
 
   /* Hashes {data} based on {selectedHashFunction} and returns the hashed result
@@ -78,21 +71,33 @@ class ExtendibleHashingTable {
     return hashedData;
   }
 
-  /* Inserts {data} into bucket {key}
+  /* Inserts {input} into bucket {key}
   @param {int} key - The bucket
-  @param {int} data - The input to be inserted
+  @param {int} input - The input to be inserted
   */
-  insertIntoBucket(key, data) {
-    this.directories[key].insert(data);
+  insertIntoBucket(input) {
+    this.directories[key].data.push(input);
+  }
+
+  incrementDepthSizeOfBucket(key) {
+    this.directories[key].localDepth++;
   }
 
   /* Increases the globalDepth/ directory size by 1 and inserts new buckets into the directory
   // e.g { "0": [], "1": []} --> { "00": [], "01": [], "10": [], "11": [] }
   */
   growDirectories() {
-    for ( var i = 1; i << this.globalDepth; i)
+    // bitwise shift, so if this.globalDepth == 2, then i = 4 (binary: 100), GD = 3, then i = 8 (binary: 1000), etc
+    for ( var i = 1; 1 << this.globalDepth; i) {
+      // convert each int, 1,2,3,4 into a binary representation of length globalDepth + 1
+      // which will be used as the keys for the directories
+      const curKey = i.toString(2).slice(-1 -this.globalDepth); 
+
+    }
     this.globalDepth++;
   }
+
+  
   
   /* Inserts {data} into bucket {key}
   @param {int} key - The bucket
@@ -115,11 +120,12 @@ class ExtendibleHashingTable {
 
     if (key in this.directories) {
       const bucket = this.directories[key];
+      this.insertIntoBucket(data);
 
-      if (!this.isBucketFull(key)) {
-
-      } else { // Bucket is full, perform 
-
+      if (this.isBucketFull(key)) {
+        if (bucket.localDepth == this.globalDepth) {
+          this.growDirectories();
+        }
       }
 
       
