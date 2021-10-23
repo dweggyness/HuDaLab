@@ -1,3 +1,36 @@
+// initialize canvas
+var width = 900;
+var height = 600;
+const padding = 10;
+var margin = {
+  top: padding,
+  right: padding,
+  bottom: padding,
+  left: padding
+};
+width -= margin.left + margin.right;
+height -= margin.top + margin.bottom;
+
+var svg = d3.select("#container-1")
+    .append("svg")
+      .attr("width", width + margin.left + margin.right)
+      .attr("height", height + margin.top + margin.bottom)
+      .attr("class", "canvas")
+      .append("g")
+        .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+// add container for BUTTONS
+var btnDiv = document.createElement("div");
+btnDiv.setAttribute("id", "button-container");
+document.getElementById("container-1").appendChild(btnDiv);
+
+// add container for process log
+let processLog = svg
+    .append("g")
+      .attr("id", "process-container")
+      .attr("transform", "translate(500, 100)");
+
+// declare bucket & EHT class
 const bucketSize = 4;
 
 class Bucket {
@@ -131,49 +164,71 @@ class ExtendibleHashingTable {
       this.splitBucket(key);
     }
   }
+
+  /* Cleans EHT, restore this.directories
+  */
+  clean() {
+    this.globalDepth = 1;
+    this.directories = [new Bucket(), new Bucket()];
+  }
 }
 
-// data, initiate a new EHashing Table
+// Interactive Features 1 ===============================================
+// data, user initiate a new EHashing Table
 const EHT = new ExtendibleHashingTable();
 
-const NUM_ELEMS_TO_INSERT = 8;
-// insert (1 to NUM_ELEMS_TO_INSERT) into the table in a random order
-let arrayOfNums = [];
-for (var i = 0; i < NUM_ELEMS_TO_INSERT; i++) {
-  arrayOfNums[i] = i + 1;
+var newIniNum = null;
+// create a seperate div for each interactive part
+let userNumDiv = document.createElement("div");
+userNumDiv.setAttribute("class", "btndiv");
+userNumDiv.setAttribute("id", "divIniNum");
+document.getElementById("button-container").appendChild(userNumDiv);
+
+let userNum = document.createElement("INPUT");
+userNum.setAttribute("type", "number");
+userNum.setAttribute("placeholder", "Please input a positive integer.");
+document.getElementById("divIniNum").appendChild(userNum);
+userNum.setAttribute("id", "userNum");
+userNum.setAttribute("style", "width:200px");
+let submitNumBtn = document.createElement("BUTTON");
+submitNumBtn.setAttribute("type", "button");
+submitNumBtn.setAttribute("onclick", "iniEHT()")
+submitNumBtn.innerHTML = "Submit";
+document.getElementById("divIniNum").appendChild(submitNumBtn);
+submitNumBtn.setAttribute("id", "submitNumBtn");
+var numText = document.createElement("p");
+numText.setAttribute("class", "btnText");
+numText.innerHTML = "# of keys to insert:";
+document.getElementById("divIniNum").appendChild(numText);
+document.getElementById("divIniNum").appendChild(userNum);
+document.getElementById("divIniNum").appendChild(submitNumBtn);
+
+function iniEHT() {
+  newIniNum = parseFloat(userNum.value);
+  userNum.value = '';
+  if (newIniNum < 0 || newIniNum % 1 !== 0){
+    alert("Please enter a valid number! \n A valid number is a Positve Integer.")
+    newIniNum = null;
+  } else {
+    EHT.clean();
+    // if input number is valid, initialize a new EHT
+    const NUM_ELEMS_TO_INSERT = newIniNum;
+    // insert (1 to NUM_ELEMS_TO_INSERT) into the table in a random order
+    let arrayOfNums = [];
+    for (var i = 0; i < NUM_ELEMS_TO_INSERT; i++) {
+      arrayOfNums[i] = i + 1;
+    }
+    for (var i = 0; i< NUM_ELEMS_TO_INSERT; i++ ) {
+      const val = arrayOfNums[Math.floor(Math.random() * arrayOfNums.length)];
+      arrayOfNums = arrayOfNums.filter(function(elem) { return elem !== val })
+      EHT.insertIntoTable(val);
+    }
+    drawViz();
+  }
 }
-for (var i = 0; i< NUM_ELEMS_TO_INSERT; i++ ) {
-  const val = arrayOfNums[Math.floor(Math.random() * arrayOfNums.length)];
-  arrayOfNums = arrayOfNums.filter(function(elem) { return elem !== val })
-  EHT.insertIntoTable(val);
-}
-
-
-
-
-var width = 900;
-var height = 600;
-const padding = 10;
-var margin = {
-  top: padding,
-  right: padding,
-  bottom: padding,
-  left: padding
-};
-width -= margin.left + margin.right;
-height -= margin.top + margin.bottom;
-
-var svg = d3.select("#container-1")
-    .append("svg")
-      .attr("width", width + margin.left + margin.right)
-      .attr("height", height + margin.top + margin.bottom)
-      .attr("class", "canvas")
-      .append("g")
-        .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
 
 function getBucketLocation(d) {
-  console.log(d);
   let x = 200 + d["order"] * 25;
   let y = 100 + d["bucket"] * 25;
   return "translate(" + x + ", " + y + ")"
@@ -246,13 +301,50 @@ function assignBucketKey(d, i) {
 }
 
 
+// processlog helper functions
+let insertLog = [];
+function findInput() {
+  let idx = insertLog.length - 1;
+  console.log(idx);
+  return "translate(" + 50 + "," + idx*25 + ")";
+}
+function findHash() {
+  let idx = insertLog.length - 1;
+  return "translate(" + 80 + "," + idx*25 + ")";
+}
+function findHashed() {
+  let idx = insertLog.length - 1;
+  return "translate(" + 0 + "," + idx*25 + ")";
+}
+function findLocate() {
+  let idx = insertLog.length - 1;
+  return "translate(" + 120 + "," + idx*25 + ")";
+}
+function findInsert() {
+  let idx = insertLog.length - 1;
+  return "translate(" + 170 + "," + idx*25 + ")";
+}
 // General Texts
+// Local Depth
+let localDepth = svg.append("text")
+  .attr("id", "localDepth")
+  .text("Local Depth")
+  .attr("x", 300)
+  .attr("y", 70)
+  .attr("fill", "#000000");
 
 // Global Depth
 let globalDepth = svg.append("text")
   .attr("id", "globalDepth")
-  .text("Global Depth: " + EHT.globalDepth)
+  .text("Global Depth: ")
   .attr("x", 25)
+  .attr("y", 70)
+  .attr("fill", "#000000");
+
+let globalDepthDigit = svg.append("text")
+  .attr("id", "globalDepthDigit")
+  .text(EHT.globalDepth)
+  .attr("x", 125)
   .attr("y", 70)
   .attr("fill", "#000000");
 
@@ -288,8 +380,12 @@ function drawViz() {
 
   keys
       .append("text")
+        .attr("class", "keyText")
+        .attr("id", function(d,i) {
+          return "key" + i;
+        })
         .text(function(d,i) {
-          return i.toString(2).padStart(EHT.globalDepth, "0");
+          return i.toString(2).padStart(EHT.globalDepth, "0")
         })
         .attr("x", 0)
         .attr("y", 0)
@@ -301,6 +397,11 @@ function drawViz() {
   exitingKeys.remove();
 
   keys.transition().duration(500).attr("transform", getKeyLocation);
+  // because keytext is not directly bounded to data,
+  // we use brute force to change the text
+  svg.selectAll(".keyText").text(function(d,i) {
+    return i.toString(2).padStart(EHT.globalDepth, "0")
+  });
 
   // buckets & values
   console.log(bucketData);
@@ -341,6 +442,10 @@ function drawViz() {
 
   values.transition().attr("transform", getBucketLocation);
 
+  //exitingValues
+  let exitingValues = valueGroup.exit();
+  exitingValues.remove();
+
   // update
   valueGroup.transition().attr("transform", getBucketLocation);
 
@@ -351,6 +456,10 @@ function drawViz() {
   let arrows = arrowGroup.enter()
     .append("line")
       .attr("class", "arrowGroup")
+      .attr("id", function(d, i) {
+        return "arrow" + d
+      })
+        .transition()
         .attr("x1", 50)
         .attr("y1", function(d, i) {
           return 100 + i * 25
@@ -369,44 +478,167 @@ function drawViz() {
     return 100 + d * 25;
   });
 
+  // local depth digit
+  let localDepthGroup = bucketPart.selectAll(".localGroup").data(uniqueBuckets);
+  let localDepthDigits = localDepthGroup.enter()
+    .append("text")
+      .text(d => d.localDepth)
+        .attr("class", "localGroup")
+        .attr("transform", function (d, i) {
+          return "translate(350, " + (100 + i * 25) + ")"
+        });
 
+  let exitingLocalDepth = localDepthGroup.exit();
+  exitingLocalDepth.remove();
 
+  localDepthGroup.transition()
+    .text(d => d.localDepth)
+      .attr("transform", function (d, i) {
+        return "translate(350, " + (100 + i * 25) + ")"
+      });
 
-
-
-
-
-  globalDepth.text("Global Depth: " + EHT.globalDepth);
+  // update globalDepthDigit accordingly
+  globalDepthDigit.text(EHT.globalDepth);
 }
 
-drawViz();
+// drawViz();
 
-// Interactive Features
-var newValue = null;
-// user input
-var userInput = document.createElement("INPUT");
-userInput.setAttribute("type", "number");
-userInput.setAttribute("placeholder", "Please input a positive integer.");
-document.getElementById("container-1").appendChild(userInput);
-userInput.setAttribute("id", "userInput");
-userInput.setAttribute("style", "width:250px");
-var submitButton = document.createElement("BUTTON");
-submitButton.setAttribute("type", "button");
-submitButton.setAttribute("onclick", "inputText()")
-submitButton.innerHTML = "Submit";
-document.getElementById("container-1").appendChild(submitButton);
-submitButton.setAttribute("id", "submitButton");
+// Interactive Features 2 ========================================
+// user insert new values
+var newInsert = null;
 
-function inputText() {
-  newValue = parseFloat(userInput.value);
-  userInput.value = '';
-  if (newValue < 0 || newValue % 1 !== 0){
+// create a seperate div for each interactive part
+let userInsertDiv = document.createElement("div");
+userInsertDiv.setAttribute("class", "btndiv");
+userInsertDiv.setAttribute("id", "divInsert");
+document.getElementById("button-container").appendChild(userInsertDiv);
+
+var userInsert = document.createElement("INPUT");
+userInsert.setAttribute("type", "number");
+userInsert.setAttribute("placeholder", "Please insert a positive integer.");
+userInsert.setAttribute("id", "userInsert");
+userInsert.setAttribute("style", "width:200px");
+var submitInsertBtn = document.createElement("BUTTON");
+submitInsertBtn.setAttribute("type", "button");
+submitInsertBtn.setAttribute("onclick", "insertValue()")
+submitInsertBtn.innerHTML = "Submit";
+submitInsertBtn.setAttribute("id", "submitInsertBtn");
+var insertText = document.createElement("p");
+insertText.setAttribute("class", "btnText");
+insertText.innerHTML = "Add another key: ";
+document.getElementById("divInsert").appendChild(insertText);
+document.getElementById("divInsert").appendChild(userInsert);
+document.getElementById("divInsert").appendChild(submitInsertBtn);
+
+var hashedKey = null;
+var convKey = null;
+
+function insertValue() {
+  newInsert = parseFloat(userInsert.value);
+  userInsert.value = '';
+  if (newInsert < 0 || newInsert % 1 !== 0){
     alert("Please enter a valid number! \n A valid number is a Positve Integer.")
-    newValue = null;
+    newInsert = null;
   } else {
-    EHT.insertIntoTable(newValue);
-    drawViz();
+    // EHT.insertIntoTable(newInsert);
+    hashedKey = EHT.hash(newInsert);
+    insertLog.push(newInsert);
+    console.log(insertLog);
+    showHash(hashedKey);
+
+
+    convKey = hashedKey & ((1 << EHT.globalDepth) - 1)
+    let bucket = EHT.directories[convKey];
+    EHT.directories[convKey].insert(newInsert, newInsert);
+
+    showLocate(convKey);
+
+    if (bucket.isFull()) {
+      if (bucket.localDepth == EHT.globalDepth) {
+        EHT.growDirectories();
+      }
+
+      EHT.splitBucket(convKey);
+    }
+
+    showInsert();
 
   }
 
+}
+
+
+function showHash(key) {
+  processLog
+    .append("text")
+      .text(newInsert)
+      .attr("transform", findInput)
+      ;
+
+  processLog
+    .append("text")
+      .text("hash")
+      .attr("transform", findHash)
+      .attr("class", "textBtn")
+      .on("click", hashClicked)
+      ;
+}
+function hashClicked() {
+  console.log("hash clicked");
+  processLog.append("text")
+    .text(hashedKey)
+    .attr("transform", findHashed)
+    .attr("text-anchor", "end")
+    .attr("id", function () { return "hash_" + newInsert });
+  // emphasis
+  processLog.append("text")
+    .text(function () { return hashedKey.slice(-EHT.globalDepth) })
+    .attr("transform", findHashed)
+    .attr("fill", "#000")
+    .transition().duration(500)
+    .attr("text-anchor", "end")
+    .attr("fill", "#f00")
+    .attr("id", function () { return "hash_" + newInsert });
+
+  globalDepth.transition().duration(500).attr("fill", "#ff0");
+  globalDepthDigit.transition().duration(500).attr("fill", "#f00");
+}
+
+function showLocate() {
+  processLog
+    .append("text")
+      .text("locate")
+      .attr("transform", findLocate)
+      .attr("class", "textBtn")
+      .on("click", locateClicked);
+}
+function locateClicked() {
+  console.log("locate clicked");
+
+  // emphasis
+  svg.select("#key"+convKey).transition().duration(500).attr("fill", "#f00");
+
+  //animated line
+  let arrow = svg.select("#arrow"+convKey);
+  arrow.each(function() {
+    let tempArrow = svg
+      .append("line")
+        .attr("class", "arrowAnimated")
+        .attr("x1", this.x1.baseVal.value)
+        .attr("y1", this.y1.baseVal.value)
+        .attr("x2", this.x2.baseVal.value)
+        .attr("y2", this.y2.baseVal.value);
+  })
+}
+
+function showInsert() {
+  processLog
+    .append("text")
+      .text("insert")
+      .attr("transform", findInsert)
+      .attr("class", "textBtn")
+      .on("click", insertClicked);
+}
+function insertClicked() {
+  drawViz();
 }
