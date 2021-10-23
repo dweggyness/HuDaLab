@@ -165,17 +165,53 @@ class ExtendibleHashingTable {
     }
   }
 
-  /* Cleans EHT, restore this.directories
+  /* Cleans EHT, reset this.directories, i.e. reinitialize EHT
   */
   clean() {
     this.globalDepth = 1;
     this.directories = [new Bucket(), new Bucket()];
+  }
+
+  /* takes a new EHT as param, deepcopy from original EHT to a new EHT object.
+  one thing important is that simply creating new buckets and assigning the same parameters of the buckets from the original EHT are not ideal, because we have the entries in the directories pointing to same buckets.
+  for the visualization previously implemented to work, the original structure must be maintained.
+  */
+  deepcopyto(tempEHT) {
+    let uniqueOri = [];
+    let uniqueNew = [];
+    let tempDirectories = Array(this.directories.length);
+    for (var i = 0; i < this.directories.length; i++) {
+      var foundDup = -1;
+      let bucket = this.directories[i];
+      for (var j = 0; j < uniqueOri.length; j++) {
+        if (bucket == uniqueOri[j]) {
+          foundDup = j;
+        }
+      }
+      if (foundDup != -1) { // found duplicate buckets
+        let tempBucket = uniqueNew[foundDup];
+        tempDirectories[i] = tempBucket;
+      } else { // not found
+        let tempBucket = new Bucket();
+        tempBucket.localDepth = bucket.localDepth;
+        tempBucket.data = JSON.parse(JSON.stringify(bucket.data));
+        uniqueOri.push(bucket);
+        uniqueNew.push(tempBucket);
+        tempDirectories[i] = tempBucket;
+      }
+    }
+    tempEHT.globalDepth = this.globalDepth;
+    tempEHT.directories = tempDirectories;
   }
 }
 
 // Interactive Features 1 ===============================================
 // data, user initiate a new EHashing Table
 const EHT = new ExtendibleHashingTable();
+
+
+// keep track of EHT after every insertion;
+let ehtRecord = [];
 
 var newIniNum = null;
 // create a seperate div for each interactive part
@@ -221,9 +257,12 @@ function iniEHT() {
     for (var i = 0; i< NUM_ELEMS_TO_INSERT; i++ ) {
       const val = arrayOfNums[Math.floor(Math.random() * arrayOfNums.length)];
       arrayOfNums = arrayOfNums.filter(function(elem) { return elem !== val })
+
+      // insertLog.push(val);
       EHT.insertIntoTable(val);
+
     }
-    drawViz();
+    drawViz(EHT);
   }
 }
 
@@ -245,11 +284,11 @@ function getKeyIniLocation(d, i) {
 
 function getUniqueBuckets(d) {
   // use an array uniqueBuckets to recrod the unique Buckets
-  // bucketIdices maps the HT keys to the corresponding uniqueBuckets
+  // bucketIndices maps the HT keys to the corresponding uniqueBuckets
   // remove duplicate in filter()
   var currIdx = 0;
   let uniqueBuckets = Array(d.length);
-  let bucketIdices = Array(d.length);
+  let bucketIndices = Array(d.length);
 
   for (var i = 0; i < d.length; i++) {
     var foundIdx = -1;
@@ -259,9 +298,9 @@ function getUniqueBuckets(d) {
       }
     }
     if (foundIdx != -1) {
-      bucketIdices[i]= foundIdx;
+      bucketIndices[i]= foundIdx;
     } else {
-      bucketIdices[i] = currIdx;
+      bucketIndices[i] = currIdx;
       uniqueBuckets[currIdx] = d[i];
       currIdx++;
     }
@@ -271,7 +310,7 @@ function getUniqueBuckets(d) {
     i && temp.push(i); // copy each non-empty value to the 'temp' array
   }
   uniqueBuckets = temp;
-  return [uniqueBuckets, bucketIdices]
+  return [uniqueBuckets, bucketIndices]
 }
 
 function flatOutBuckets(uniqueBuckets) {
@@ -302,26 +341,19 @@ function assignBucketKey(d, i) {
 
 
 // processlog helper functions
-let insertLog = [];
-function findInput() {
-  let idx = insertLog.length - 1;
-  console.log(idx);
+function findInput(idx) {
   return "translate(" + 50 + "," + idx*25 + ")";
 }
-function findHash() {
-  let idx = insertLog.length - 1;
+function findHash(idx) {
   return "translate(" + 80 + "," + idx*25 + ")";
 }
-function findHashed() {
-  let idx = insertLog.length - 1;
+function findHashed(idx) {
   return "translate(" + 0 + "," + idx*25 + ")";
 }
-function findLocate() {
-  let idx = insertLog.length - 1;
+function findLocate(idx) {
   return "translate(" + 120 + "," + idx*25 + ")";
 }
-function findInsert() {
-  let idx = insertLog.length - 1;
+function findInsert(idx) {
   return "translate(" + 170 + "," + idx*25 + ")";
 }
 // General Texts
@@ -352,10 +384,10 @@ let keyPart = svg.append("g").attr("class", "keyPart");
 let arrowPart = svg.append("g").attr("class", "arrowPart");
 let bucketPart = svg.append("g").attr("class", "bucketPart");
 
-function drawViz() {
+function drawViz(eht) {
 
 
-  var bucketData = EHT.directories;
+  var bucketData = eht.directories;
   console.log(bucketData);
 
   // hash keys
@@ -385,7 +417,7 @@ function drawViz() {
           return "key" + i;
         })
         .text(function(d,i) {
-          return i.toString(2).padStart(EHT.globalDepth, "0")
+          return i.toString(2).padStart(eht.globalDepth, "0")
         })
         .attr("x", 0)
         .attr("y", 0)
@@ -400,17 +432,16 @@ function drawViz() {
   // because keytext is not directly bounded to data,
   // we use brute force to change the text
   svg.selectAll(".keyText").text(function(d,i) {
-    return i.toString(2).padStart(EHT.globalDepth, "0")
+    return i.toString(2).padStart(eht.globalDepth, "0")
   });
 
   // buckets & values
-  console.log(bucketData);
   result = getUniqueBuckets(bucketData);
   uniqueBuckets = result[0];
-  bucketIdices = result[1];
+  bucketIndices = result[1];
 
   console.log(uniqueBuckets);
-  console.log("bucketIdices",bucketIdices);
+  console.log("bucketIndices",bucketIndices);
 
   flattedData = flatOutBuckets(uniqueBuckets);
 
@@ -450,7 +481,7 @@ function drawViz() {
   valueGroup.transition().attr("transform", getBucketLocation);
 
   // arrows connecting hash keys and bucket
-  let arrowGroup = arrowPart.selectAll(".arrowGroup").data(bucketIdices, function(d,i) {
+  let arrowGroup = arrowPart.selectAll(".arrowGroup").data(bucketIndices, function(d,i) {
     return "arrow"+i
   });
   let arrows = arrowGroup.enter()
@@ -465,7 +496,7 @@ function drawViz() {
           return 100 + i * 25
         })
         .attr("y2",function(d,i){
-          return 100 + d * 25;
+          return 100 + d * 25
         })
         .attr("x2", 150)
         .attr("stroke", "#000000");
@@ -498,7 +529,7 @@ function drawViz() {
       });
 
   // update globalDepthDigit accordingly
-  globalDepthDigit.text(EHT.globalDepth);
+  globalDepthDigit.text(eht.globalDepth);
 }
 
 // drawViz();
@@ -506,6 +537,12 @@ function drawViz() {
 // Interactive Features 2 ========================================
 // user insert new values
 var newInsert = null;
+// states to record whether each button has been clicked.
+let stateHash = [];
+let stateLocate = [];
+let stateInsert = [];
+var insertIdx = -1;
+let insertLog = [];
 
 // create a seperate div for each interactive part
 let userInsertDiv = document.createElement("div");
@@ -530,10 +567,11 @@ document.getElementById("divInsert").appendChild(insertText);
 document.getElementById("divInsert").appendChild(userInsert);
 document.getElementById("divInsert").appendChild(submitInsertBtn);
 
-var hashedKey = null;
-var convKey = null;
+
 
 function insertValue() {
+  var hashedKey = null;
+  var convKey = null;
   newInsert = parseFloat(userInsert.value);
   userInsert.value = '';
   if (newInsert < 0 || newInsert % 1 !== 0){
@@ -541,17 +579,18 @@ function insertValue() {
     newInsert = null;
   } else {
     // EHT.insertIntoTable(newInsert);
-    hashedKey = EHT.hash(newInsert);
-    insertLog.push(newInsert);
-    console.log(insertLog);
-    showHash(hashedKey);
 
+    //update states
+    insertIdx++;
+    stateHash.push(false);
+    stateLocate.push(false);
+    stateInsert.push(false);
+
+    hashedKey = EHT.hash(newInsert);
 
     convKey = hashedKey & ((1 << EHT.globalDepth) - 1)
     let bucket = EHT.directories[convKey];
     EHT.directories[convKey].insert(newInsert, newInsert);
-
-    showLocate(convKey);
 
     if (bucket.isFull()) {
       if (bucket.localDepth == EHT.globalDepth) {
@@ -560,85 +599,169 @@ function insertValue() {
 
       EHT.splitBucket(convKey);
     }
+    insertLog.push({
+      "ins": newInsert,
+      "key": hashedKey,
+      "convkey": convKey
+    })
+    showHash(insertIdx);
+    showLocate(insertIdx);
+    showInsert(insertIdx);
 
-    showInsert();
-
+    // update EHT record
+    tempEHT = new ExtendibleHashingTable();
+    EHT.deepcopyto(tempEHT);
+    console.log("tempEHT", tempEHT);
+    ehtRecord.push(tempEHT);
   }
 
 }
 
+// animation delay thread, keeps adding.
+// the animation function call is recursive,
+// from the current implementation (as we first call recursion then add delay), delay adds from end to begining,
+// and the actuall delay at the begining is the smallest
+// so we create a queue, to keep track of the delay;
+var delay = 0;
+var delayStack = [];
 
-function showHash(key) {
+function showHash(idx) {
   processLog
     .append("text")
-      .text(newInsert)
-      .attr("transform", findInput)
+      .text(insertLog[idx]["ins"])
+      .attr("transform", function() {
+        return findInput(idx);
+      })
       ;
 
   processLog
     .append("text")
       .text("hash")
-      .attr("transform", findHash)
+      .attr("transform", function () {
+        return findHash(idx);
+      })
       .attr("class", "textBtn")
-      .on("click", hashClicked)
+      .on("click", function () {
+        hashClicked(idx);
+      })
       ;
 }
-function hashClicked() {
+function hashClicked(idx) {
   console.log("hash clicked");
-  processLog.append("text")
-    .text(hashedKey)
-    .attr("transform", findHashed)
-    .attr("text-anchor", "end")
-    .attr("id", function () { return "hash_" + newInsert });
-  // emphasis
-  processLog.append("text")
-    .text(function () { return hashedKey.slice(-EHT.globalDepth) })
-    .attr("transform", findHashed)
-    .attr("fill", "#000")
-    .transition().duration(500)
-    .attr("text-anchor", "end")
-    .attr("fill", "#f00")
-    .attr("id", function () { return "hash_" + newInsert });
 
-  globalDepth.transition().duration(500).attr("fill", "#ff0");
-  globalDepthDigit.transition().duration(500).attr("fill", "#f00");
+  if (idx>0 && !stateInsert[idx-1]) {
+    console.log("?");
+    insertClicked(idx-1);
+    delay+=500;
+    delayStack.push(delay);
+  }
+
+  setTimeout(function () {
+    if (!stateHash[idx]) {
+      processLog.append("text")
+        .text(insertLog[idx]["key"])
+        .attr("transform", function () {
+          return findHashed(idx);
+        })
+        .attr("text-anchor", "end")
+        .attr("id", function () { return "hash_" + insertLog[idx]["ins"] });
+
+      // reset fill color of existing key emphasis
+      svg.selectAll(".keyText").attr("fill", "#000");
+      //remove existing animated line
+      svg.selectAll(".arrowAnimated").remove();
+
+      // emphasis
+      processLog.append("text")
+        .text(function () { return insertLog[idx]["key"].slice(-ehtRecord[idx].globalDepth) })
+        .attr("transform", function () {
+          return findHashed(idx);
+        })
+        .attr("fill", "#000")
+        .transition().duration(500)
+        .attr("text-anchor", "end")
+        .attr("fill", "#f00")
+        .attr("id", function () { return "hash_emph_" + insertLog[idx]["ins"] });
+
+      stateHash[idx] = true;
+    }
+
+    svg.select("#hash_emph_" + insertLog[idx]["ins"]).attr("fill", "#000")
+      .transition().duration(500).attr("fill", "#f00");
+    globalDepth.attr("fill", "#000")
+      .transition().duration(500).attr("fill", "#ff0");
+    globalDepthDigit.attr("fill", "#000")
+      .transition().duration(500).attr("fill", "#f00");
+  }, delayStack.shift());
+
 }
 
-function showLocate() {
+function showLocate(idx) {
   processLog
     .append("text")
       .text("locate")
-      .attr("transform", findLocate)
+      .attr("transform", function () {
+        return findLocate(idx);
+      })
       .attr("class", "textBtn")
-      .on("click", locateClicked);
+      .on("click", function () {
+        locateClicked(idx);
+      });
 }
-function locateClicked() {
+function locateClicked(idx) {
   console.log("locate clicked");
+  // if stateHash is false, i.e. hashBtn is not clicked, then we will first run hashClicked, then run locateClicked with a delay.
 
-  // emphasis
-  svg.select("#key"+convKey).transition().duration(500).attr("fill", "#f00");
+  if (!stateHash[idx]) {
+    hashClicked(idx);
+    delay+=800;
+    delayStack.push(delay);
+  }
 
-  //animated line
-  let arrow = svg.select("#arrow"+convKey);
-  arrow.each(function() {
-    let tempArrow = svg
-      .append("line")
-        .attr("class", "arrowAnimated")
-        .attr("x1", this.x1.baseVal.value)
-        .attr("y1", this.y1.baseVal.value)
-        .attr("x2", this.x2.baseVal.value)
-        .attr("y2", this.y2.baseVal.value);
-  })
+  setTimeout(function () {
+    // reset fill color of existing key emphasis
+    svg.selectAll(".keyText").attr("fill", "#000");
+    //remove existing animated line
+    svg.selectAll(".arrowAnimated").remove();
+
+    // emphasis
+    svg.select("#key"+insertLog[idx]["convkey"]).attr("fill", "#000")
+      .transition().duration(500).attr("fill", "#f00");
+    //animated line
+    let arrow = svg.select("#arrow"+insertLog[idx]["convkey"]);
+    arrow.each(function() {
+      let tempArrow = svg
+        .append("line")
+          .attr("class", "arrowAnimated")
+          .attr("x1", this.x1.baseVal.value)
+          .attr("y1", this.y1.baseVal.value)
+          .attr("x2", this.x2.baseVal.value)
+          .attr("y2", this.y2.baseVal.value);
+    })
+  }, delayStack.shift());
+
+  stateLocate[idx] = true;
 }
 
-function showInsert() {
+function showInsert(idx) {
   processLog
     .append("text")
       .text("insert")
-      .attr("transform", findInsert)
+      .attr("transform", function() {
+        return findInsert(idx);
+      })
       .attr("class", "textBtn")
-      .on("click", insertClicked);
+      .on("click", function () {
+        insertClicked(idx);
+      });
 }
-function insertClicked() {
-  drawViz();
+function insertClicked(idx) {
+  if (!stateLocate[idx]) {
+    locateClicked(idx);
+    delay+=1000;
+    delayStack.push(delay);
+  }
+  setTimeout(function () {
+    drawViz(ehtRecord[idx]);
+  }, delayStack.shift());
 }
