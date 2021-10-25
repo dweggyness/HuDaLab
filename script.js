@@ -30,6 +30,12 @@ let processLog = svg
       .attr("id", "process-container")
       .attr("transform", "translate(500, 100)");
 
+// add container for find key
+let findSection = svg
+    .append("g")
+      .attr("id", "find-container")
+      .attr("transform", "translate(500, 20)");
+
 // declare bucket & EHT class
 const bucketSize = 4;
 
@@ -212,6 +218,12 @@ const EHT = new ExtendibleHashingTable();
 
 // keep track of EHT after every insertion;
 let ehtRecord = [];
+// states to record whether each button has been clicked.
+let stateHash = [];
+let stateLocate = [];
+let stateInsert = [];
+var insertIdx = -1;
+let insertLog = [];
 
 var newIniNum = null;
 // create a seperate div for each interactive part
@@ -222,10 +234,10 @@ document.getElementById("button-container").appendChild(userNumDiv);
 
 let userNum = document.createElement("INPUT");
 userNum.setAttribute("type", "number");
-userNum.setAttribute("placeholder", "Please input a positive integer.");
+userNum.setAttribute("placeholder", "Positive integer");
 document.getElementById("divIniNum").appendChild(userNum);
 userNum.setAttribute("id", "userNum");
-userNum.setAttribute("style", "width:200px");
+userNum.setAttribute("style", "width:150px");
 let submitNumBtn = document.createElement("BUTTON");
 submitNumBtn.setAttribute("type", "button");
 submitNumBtn.setAttribute("onclick", "iniEHT()")
@@ -258,8 +270,40 @@ function iniEHT() {
       const val = arrayOfNums[Math.floor(Math.random() * arrayOfNums.length)];
       arrayOfNums = arrayOfNums.filter(function(elem) { return elem !== val })
 
-      // insertLog.push(val);
-      EHT.insertIntoTable(val);
+      // EHT.insertIntoTable(val);
+
+      //update states
+      insertIdx++;
+      stateHash.push(false);
+      stateLocate.push(false);
+      stateInsert.push(false);
+
+      hashedKey = EHT.hash(val);
+
+      convKey = hashedKey & ((1 << EHT.globalDepth) - 1)
+      let bucket = EHT.directories[convKey];
+      EHT.directories[convKey].insert(val, val);
+
+      if (bucket.isFull()) {
+        if (bucket.localDepth == EHT.globalDepth) {
+          EHT.growDirectories();
+        }
+
+        EHT.splitBucket(convKey);
+      }
+      insertLog.push({
+        "ins": val,
+        "key": hashedKey,
+        "convkey": convKey
+      })
+      showHash(insertIdx);
+      showLocate(insertIdx);
+      showInsert(insertIdx);
+
+      // update EHT record
+      tempEHT = new ExtendibleHashingTable();
+      EHT.deepcopyto(tempEHT);
+      ehtRecord.push(tempEHT);
 
     }
     drawViz(EHT);
@@ -467,6 +511,7 @@ function drawViz(eht) {
       .append("text")
         .text(d => d["key"])
         .attr('class', "valueTexts")
+        .attr("id", d => "value" + d["key"])
         .attr("x", 0)
         .attr("y", 0)
         .attr("fill", "#000000");
@@ -488,7 +533,7 @@ function drawViz(eht) {
     .append("line")
       .attr("class", "arrowGroup")
       .attr("id", function(d, i) {
-        return "arrow" + d
+        return "arrow" + i
       })
         .transition()
         .attr("x1", 50)
@@ -537,12 +582,7 @@ function drawViz(eht) {
 // Interactive Features 2 ========================================
 // user insert new values
 var newInsert = null;
-// states to record whether each button has been clicked.
-let stateHash = [];
-let stateLocate = [];
-let stateInsert = [];
-var insertIdx = -1;
-let insertLog = [];
+
 
 // create a seperate div for each interactive part
 let userInsertDiv = document.createElement("div");
@@ -552,9 +592,9 @@ document.getElementById("button-container").appendChild(userInsertDiv);
 
 var userInsert = document.createElement("INPUT");
 userInsert.setAttribute("type", "number");
-userInsert.setAttribute("placeholder", "Please insert a positive integer.");
+userInsert.setAttribute("placeholder", "Positive integer");
 userInsert.setAttribute("id", "userInsert");
-userInsert.setAttribute("style", "width:200px");
+userInsert.setAttribute("style", "width:150px");
 var submitInsertBtn = document.createElement("BUTTON");
 submitInsertBtn.setAttribute("type", "button");
 submitInsertBtn.setAttribute("onclick", "insertValue()")
@@ -611,7 +651,6 @@ function insertValue() {
     // update EHT record
     tempEHT = new ExtendibleHashingTable();
     EHT.deepcopyto(tempEHT);
-    console.log("tempEHT", tempEHT);
     ehtRecord.push(tempEHT);
   }
 
@@ -642,6 +681,7 @@ function showHash(idx) {
       })
       .attr("class", "textBtn")
       .on("click", function () {
+        delay = 0;
         hashClicked(idx);
       })
       ;
@@ -650,7 +690,6 @@ function hashClicked(idx) {
   console.log("hash clicked");
 
   if (idx>0 && !stateInsert[idx-1]) {
-    console.log("?");
     insertClicked(idx-1);
     delay+=500;
     delayStack.push(delay);
@@ -705,6 +744,7 @@ function showLocate(idx) {
       })
       .attr("class", "textBtn")
       .on("click", function () {
+        delay = 0;
         locateClicked(idx);
       });
 }
@@ -729,6 +769,7 @@ function locateClicked(idx) {
       .transition().duration(500).attr("fill", "#f00");
     //animated line
     let arrow = svg.select("#arrow"+insertLog[idx]["convkey"]);
+    console.log("#arrow"+insertLog[idx]["convkey"]);
     arrow.each(function() {
       let tempArrow = svg
         .append("line")
@@ -752,6 +793,7 @@ function showInsert(idx) {
       })
       .attr("class", "textBtn")
       .on("click", function () {
+        delay = 0;
         insertClicked(idx);
       });
 }
@@ -762,6 +804,136 @@ function insertClicked(idx) {
     delayStack.push(delay);
   }
   setTimeout(function () {
+
     drawViz(ehtRecord[idx]);
   }, delayStack.shift());
+}
+
+
+
+// find key
+// create a seperate div for each interactive part
+let userFindDiv = document.createElement("div");
+userFindDiv.setAttribute("class", "btndiv");
+userFindDiv.setAttribute("id", "divFind");
+document.getElementById("button-container").appendChild(userFindDiv);
+
+var userFind = document.createElement("INPUT");
+userFind.setAttribute("type", "number");
+userFind.setAttribute("placeholder", "Positive integer");
+userFind.setAttribute("id", "userInsert");
+userFind.setAttribute("style", "width:150px");
+var submitFindBtn = document.createElement("BUTTON");
+submitFindBtn.setAttribute("type", "button");
+submitFindBtn.setAttribute("onclick", "findValue()")
+submitFindBtn.innerHTML = "Submit";
+submitFindBtn.setAttribute("id", "submitFindBtn");
+var findText = document.createElement("p");
+findText.setAttribute("class", "btnText");
+findText.innerHTML = "Find a key: ";
+document.getElementById("divFind").appendChild(findText);
+document.getElementById("divFind").appendChild(userFind);
+document.getElementById("divFind").appendChild(submitFindBtn);
+
+
+function findValue() {
+  let find = parseFloat(userFind.value);
+  // clear the input field.
+  userFind.value = '';
+  var found = false;
+  for (var i = 0; i < insertLog.length; i++) {
+    if (find == insertLog[i]['ins']) {
+      found = true;
+    }
+  }
+
+  if (find < 0 || find % 1 !== 0 || !found){
+    alert("Please enter a valid number! \n A valid number is a Positve Integer that is IN the extendible hashing table.")
+    find = null;
+  } else {
+    d3.selectAll(".findingStatic").remove();
+    //remove animated line;
+    d3.selectAll(".arrowAnimated").remove();
+    // remove hashed keys
+    d3.selectAll(".finding").remove();
+
+    findSection
+      .append("text")
+        .attr("class", "findingStatic")
+        .text(find)
+        .attr("x", 50)
+        .attr("y", 0);
+
+    findSection
+      .append("text")
+        .attr("class", "findingStatic textBtn")
+        .text("hash&find")
+        .attr("x", 100)
+        .attr("y", 0)
+        .on("click", function () {
+          findClicked(find);
+        });
+  }
+}
+
+function findClicked(find) {
+  let currentEHT = ehtRecord[insertIdx];
+  let hashedKey = currentEHT.hash(find);
+  let convKey = currentEHT.getIndex(find);
+
+  //remove animated line;
+  d3.selectAll(".arrowAnimated").remove();
+  // remove hashed keys
+  d3.selectAll(".finding").remove();
+  //recover states
+  d3.select("#value"+find).attr("fill", "#000");
+  d3.select("#key" + convKey).attr("fill", "#000");
+  d3.selectAll(".valueTexts").attr("fill", "#000");
+  d3.selectAll(".keyText").attr("fill", "#000");
+
+  findSection
+    .append("text")
+      .attr("class", "finding")
+      .text(hashedKey)
+      .attr("text-anchor", "end")
+      .attr("x", 0)
+      .attr("y", 0);
+
+  globalDepth.attr("fill", "#000")
+    .transition().duration(500).attr("fill", "#ff0");
+  globalDepthDigit.attr("fill", "#000")
+    .transition().duration(500).attr("fill", "#f00");
+
+  //animated line
+  let arrow = svg.select("#arrow"+convKey);
+  arrow.each(function() {
+    let tempArrow = svg
+      .append("line")
+        .attr("x1", this.x1.baseVal.value)
+        .attr("y1", this.y1.baseVal.value)
+          .transition().delay(500)
+        .attr("x1", this.x1.baseVal.value)
+        .attr("y1", this.y1.baseVal.value)
+        .attr("x2", this.x2.baseVal.value)
+        .attr("y2", this.y2.baseVal.value)
+        .attr("class", "arrowAnimated");
+  })
+
+  d3.select("#key" + convKey).transition().delay(500)
+    .attr("fill", "#f00");
+
+  findSection
+    .append("text")
+      .attr("class", "finding")
+      .text(hashedKey.slice(-currentEHT.globalDepth))
+      .attr("text-anchor", "end")
+      .attr("x", 0)
+      .attr("y", 0)
+      .transition().delay(500)
+        .attr("fill", "#f00");
+
+  d3.select("#value"+find)
+    .transition().delay(1000)
+      .attr("fill", "#f00");
+
 }
