@@ -1421,7 +1421,11 @@ document.getElementById("divFind").appendChild(submitFindBtn);
 
 
 function findValue() {
+  if (stateInsert.slice(1, stateInsert.length).includes(false)) {
+    alert("Please finish all the inserts in order to find.")
+  }
   let find = parseFloat(userFind.value);
+
   // clear the input field.
   userFind.value = '';
   var found = false;
