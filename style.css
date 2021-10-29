@@ -1,5 +1,5 @@
 .canvas {
-  background-color: #cdcdcd;
+  background-color: white;
 }
 
 #button-container {
@@ -10,10 +10,18 @@
   cursor: pointer;
 }
 
+html {
+  font-family: sans-serif;
+}
+
 @keyframes dash {
   to {
     stroke-dashoffset: 0;
   }
+}
+
+path {
+  fill:none;
 }
 
 .arrowAnimated {
@@ -22,4 +30,26 @@
   stroke-dasharray: 200;
   stroke-dashoffset: 200;
   animation: dash 2s ease forwards;
+}
+
+.bBox {
+  rx:2;
+  ry:2;
+}
+
+.unclickedBBox {
+  stroke: none;
+  fill: #ececec;
+}
+.unclickedText {
+  stroke: none;
+  fill: #8c8c8c;
+}
+.clickedBBox {
+  stroke: none;
+  fill: #e0e9fa;
+}
+.clickedText {
+  stroke: none;
+  fill: #146396;
 }
