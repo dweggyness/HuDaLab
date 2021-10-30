@@ -241,6 +241,13 @@ let stateInsert = [];
 var insertIdx = 0;
 let insertLog = [null];
 
+// used to keep track of the final state elem of the 'step' that the user has clicked
+// we use this to make sure that the current animation is done running before starting another
+let currentAnimFinalStateObj = {
+  idx: null, // int
+  type: null, // 'hash', 'locate', 'split', 'insert'
+}
+
 var newIniNum = null;
 // create a seperate div for each interactive part
 let userNumDiv = document.createElement("div");
@@ -915,7 +922,10 @@ function showHash(idx) {
       })
       .on("click", function () {
         delay = 0;
-        hashClicked(idx);
+        if (hasCurrentAnimationFinished()) {
+          hashClicked(idx);
+          currentAnimFinalStateObj = { idx, type: 'hash' };
+        }
       });
 
   processLog
@@ -1050,7 +1060,10 @@ function showLocate(idx) {
       })
       .on("click", function () {
         delay = 0;
-        locateClicked(idx);
+        if (hasCurrentAnimationFinished()) {
+          locateClicked(idx);
+          currentAnimFinalStateObj = { idx, type: 'locate' };
+        }
       });
 
   processLog
@@ -1171,7 +1184,10 @@ function showSplit(idx) {
       })
       .on("click", function() {
         delay = 0;
-        splitClicked(idx);
+        if (hasCurrentAnimationFinished()) {
+          splitClicked(idx);
+          currentAnimFinalStateObj = { idx, type: 'split' };
+        }
       });
 
   processLog
@@ -1337,7 +1353,10 @@ function showInsert(idx) {
       })
       .on("click", function () {
         delay = 0;
-        insertClicked(idx);
+        if (hasCurrentAnimationFinished()) {
+          insertClicked(idx);
+          currentAnimFinalStateObj = { idx, type: 'insert' };
+        }
       });
 
   processLog
@@ -1393,6 +1412,23 @@ function insertClicked(idx) {
 
 }
 
+// returns a bool whether the current animation has finished
+function hasCurrentAnimationFinished() {
+  const { idx, type } = currentAnimFinalStateObj;
+  
+  switch (type) {
+    case 'hash':
+      return stateHash[idx];
+    case 'locate':
+      return stateLocate[idx];
+    case 'split':
+      return stateSplit[idx];
+    case 'insert':
+      return stateInsert[idx];
+    default:
+      return true;
+  }
+}
 
 
 // find key
