@@ -1,5 +1,5 @@
-.canvas {
-  background-color: white;
+#canvas {
+  background-color: #d4d4d4;
 }
 
 #button-container {
@@ -52,4 +52,8 @@ path {
 .clickedText {
   stroke: none;
   fill: #146396;
+}
+
+#container-1 {
+  height: 1600px;
 }

@@ -13,6 +13,8 @@ height -= margin.top + margin.bottom;
 
 const textBlockPaddingX = 4;
 const textBlockPaddingY = 1;
+const btnPaddingX = 1.5;
+const btnPaddingY = 1.5;
 
 // add container for BUTTONS
 var btnDiv = document.createElement("div");
@@ -22,30 +24,42 @@ document.getElementById("container-1").appendChild(btnDiv);
 
 var svg = d3.select("#container-1")
     .append("svg")
-      .attr("width", width + margin.left + margin.right)
-      .attr("height", height + margin.top + margin.bottom)
-      .attr("class", "canvas")
+      .attr("width", 900 + 'px')
+      .attr("height", 600 + 'px')
+      // .attr("preserveAspectRatio","none")
+      // .attr("width", width + margin.left + margin.right)
+      // .attr("height", height + margin.top + margin.bottom)
+      .attr("id", "canvas")
       .append("g")
         .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
+// add container for main viz
+let vizSection = svg
+    .append("g")
+      .attr("id", "viz-container")
+      .attr("transform", "translate(350, 0)");
 
 // add container for process log
 let processLog = svg
     .append("g")
       .attr("id", "process-container")
-      .attr("transform", "translate(600, 100)");
+      .attr("transform", "translate(0, 70)");
 
 // add container for find key
 let findSection = svg
     .append("g")
       .attr("id", "find-container")
-      .attr("transform", "translate(600, 20)");
+      .attr("transform", "translate(0, 20)");
 
 // add container for spliting (rehashing)
 let splitSection = svg
     .append("g")
       .attr("id", "split-container")
-      .attr("transform", "translate(400, 100)");
+      .attr("transform", "translate(725, 100)");
+
+
+
+
 
 // declare bucket & EHT class
 const bucketSize = 4;
@@ -236,17 +250,15 @@ let flattedData;
 // states to record whether each button has been clicked.
 let stateHash = [];
 let stateLocate = [];
-let stateSplit = [];
+let stateFullInsert = [];
+let stateExpand = [];
+// let stateSplit = [];
 let stateInsert = [];
 var insertIdx = 0;
 let insertLog = [null];
 
-// used to keep track of the final state elem of the 'step' that the user has clicked
-// we use this to make sure that the current animation is done running before starting another
-let currentAnimFinalStateObj = {
-  idx: null, // int
-  type: null, // 'hash', 'locate', 'split', 'insert'
-}
+var fullAnimate = false;
+var animationLock = true;
 
 var newIniNum = null;
 // create a seperate div for each interactive part
@@ -283,11 +295,18 @@ function iniEHT() {
   } else {
     EHT.clean();
 
+    // change canvas size
+    desHeight =  600 + Math.max(0, newIniNum-18)*28 + "px";
+    document.getElementById("canvas").setAttribute("height", desHeight);
+
+    animationLock = false;
     ehtRecord = [initialEHT];
     // states to record whether each button has been clicked.
     stateHash = [false];
     stateLocate = [false];
-    stateSplit = [false];
+    stateFullInsert = [false];
+    stateExpand = [false];
+    // stateSplit = [false];
     stateInsert = [false];
     insertIdx = 0;
     insertLog = [null];
@@ -310,9 +329,9 @@ function iniEHT() {
 
       //update states
       insertIdx++;
-      stateHash.push(false);
-      stateLocate.push(false);
-      stateInsert.push(false);
+      stateHash.push(true);
+      stateLocate.push(true);
+      stateInsert.push(true);
 
       hashedKey = EHT.hash(val);
 
@@ -326,21 +345,25 @@ function iniEHT() {
         "convkey": convKey
       })
 
+      showHash(insertIdx);
+      showLocate(insertIdx);
+
       if (bucket.isFull()) {
         if (bucket.localDepth == EHT.globalDepth) {
           EHT.growDirectories();
         }
 
         EHT.splitBucket(convKey);
-        stateSplit.push(false);
+        showFullInsert(insertIdx);
+        showExpand(insertIdx);
         showSplit(insertIdx);
+        stateFullInsert.push(true);
+        stateExpand.push(true);
       } else {
-        stateSplit.push(null);
+        stateFullInsert.push(null);
+        stateExpand.push(null);
+        showInsert(insertIdx);
       }
-
-      showHash(insertIdx);
-      showLocate(insertIdx);
-      showInsert(insertIdx);
 
       // update EHT record
       tempEHT = new ExtendibleHashingTable();
@@ -397,6 +420,12 @@ function findHash_BBox(idx) {
 function findLocateBBox(idx) {
   return d3.select("#locateBtn" + idx).node().getBBox();
 }
+function findFullInsertBBox(idx) {
+  return d3.select("#fullInsertBtn" + idx).node().getBBox();
+}
+function findExpandBBox(idx) {
+  return d3.select("#expandBtn" + idx).node().getBBox();
+}
 function findSplitBBox(idx) {
   return d3.select("#splitBtn" + idx).node().getBBox();
 }
@@ -407,6 +436,10 @@ function findInsertBBox(idx) {
   return d3.select("#insertBtn" + idx).node().getBBox();
 }
 
+function findPlayAllBBox() {
+  return d3.select("#playAllBtn").node().getBBox();
+}
+
 
 // change states
 function stateHashChange(idx, state) {
@@ -415,9 +448,15 @@ function stateHashChange(idx, state) {
   if (state) {
     d3.select("#hashBtn"+idx).attr("class", "textBtn clickedText");
     d3.select("#hashBtnBBox"+idx).attr("class", "bBox clickedBBox");
+    // change current key color
+    d3.select("#hashed"+idx).attr("class", "textBtn clickedText");
+    d3.select("#hashedBBox"+idx).attr("class", "bBox clickedBBox");
   } else {
     d3.select("#hashBtn"+idx).attr("class", "textBtn unclickedText");
     d3.select("#hashBtnBBox"+idx).attr("class", "bBox unclickedBBox");
+    // change current key color
+    d3.select("#hashed"+idx).attr("class", "textBtn unclickedText");
+    d3.select("#hashedBBox"+idx).attr("class", "bBox unclickedBBox");
   }
 }
 function stateLocateChange(idx, state) {
@@ -431,27 +470,50 @@ function stateLocateChange(idx, state) {
     d3.select("#locateBtnBBox"+idx).attr("class", "bBox unclickedBBox");
   }
 }
-function stateSplitChange(idx, state) {
-  stateSplit[idx] = state;
+function stateFullInsertChange(idx, state) {
+  stateFullInsert[idx] = state;
   // update btn color
   if (state) {
-    d3.select("#splitBtn"+idx).attr("class", "textBtn clickedText");
-    d3.select("#splitBtnBBox"+idx).attr("class", "bBox clickedBBox");
+    d3.select("#fullInsertBtn"+idx).attr("class", "textBtn clickedText");
+    d3.select("#fullInsertBtnBBox"+idx).attr("class", "bBox clickedBBox");
   } else {
-    d3.select("#splitBtn"+idx).attr("class", "textBtn unclickedText");
-    d3.select("#splitBtnBBox"+idx).attr("class", "bBox unclickedBBox");
+    d3.select("#fullInsertBtn"+idx).attr("class", "textBtn unclickedText");
+    d3.select("#fullInsertBtnBBox"+idx).attr("class", "bBox unclickedBBox");
+  }
+}
+function stateExpandChange(idx, state) {
+  stateExpand[idx] = state;
+  // update btn color
+  if (state) {
+    d3.select("#expandBtn"+idx).attr("class", "textBtn clickedText");
+    d3.select("#expandBtnBBox"+idx).attr("class", "bBox clickedBBox");
+  } else {
+    d3.select("#expandBtn"+idx).attr("class", "textBtn unclickedText");
+    d3.select("#expandBtnBBox"+idx).attr("class", "bBox unclickedBBox");
   }
 }
 function stateInsertChange(idx, state) {
   stateInsert[idx] = state;
+  split = (stateExpand[idx] === null) ? false:true;
   // update btn color
-  if (state) {
-    d3.select("#insertBtn"+idx).attr("class", "textBtn clickedText");
-    d3.select("#insertBtnBBox"+idx).attr("class", "bBox clickedBBox");
+  if (split) {
+    if (state) {
+      d3.select("#splitBtn"+idx).attr("class", "textBtn clickedText");
+      d3.select("#splitBtnBBox"+idx).attr("class", "bBox clickedBBox");
+    } else {
+      d3.select("#splitBtn"+idx).attr("class", "textBtn unclickedText");
+      d3.select("#splitBtnBBox"+idx).attr("class", "bBox unclickedBBox");
+    }
   } else {
-    d3.select("#insertBtn"+idx).attr("class", "textBtn unclickedText");
-    d3.select("#insertBtnBBox"+idx).attr("class", "bBox unclickedBBox");
+    if (state) {
+      d3.select("#insertBtn"+idx).attr("class", "textBtn clickedText");
+      d3.select("#insertBtnBBox"+idx).attr("class", "bBox clickedBBox");
+    } else {
+      d3.select("#insertBtn"+idx).attr("class", "textBtn unclickedText");
+      d3.select("#insertBtnBBox"+idx).attr("class", "bBox unclickedBBox");
+    }
   }
+
 }
 
 
@@ -516,7 +578,7 @@ function assignBucketKey(d, i) {
 // processlog helper functions
 function findLogBtnY(idx) {
   idx = idx - 1;
-  return idx*25
+  return idx*28
 }
 
 
@@ -528,15 +590,6 @@ function findFull(idx) {
   return [-25, y];
 }
 
-function findToSplitX(i, j) {
-  return (250-j*30);
-}
-function findToSplitY(i, j) {
-  return (j-i)*25;
-}
-function findInsert(idx) {
-  return (stateSplit[idx] === null) ? 180:220;
-}
 
 
 // General Texts
@@ -544,7 +597,7 @@ function findInsert(idx) {
 let localDepth = svg.append("text")
   .attr("id", "localDepth")
   .text("Local Depth")
-  .attr("x", 290)
+  .attr("x", 640)
   .attr("y", 70)
   .attr("fill", "#000000");
 
@@ -552,14 +605,14 @@ let localDepth = svg.append("text")
 let globalDepth = svg.append("text")
   .attr("id", "globalDepth")
   .text("Global Depth: ")
-  .attr("x", 10)
+  .attr("x", 360)
   .attr("y", 70)
   .attr("fill", "#000000");
 
 let globalDepthDigit = svg.append("text")
   .attr("id", "globalDepthDigit")
   .text(EHT.globalDepth)
-  .attr("x", 120)
+  .attr("x", 470)
   .attr("y", 70)
   .attr("fill", "#000000");
 
@@ -577,17 +630,27 @@ let globalDepthDigitBBox = svg.insert("rect", "#globalDepthDigit")
     return findGDBBox().height + 2*textBlockPaddingY;
   })
   .attr("class", "bBox")
-  .attr("fill", "#fae0e0")
-  .attr("stroke", "#bc3f3f");
+  .attr("fill", "#e0faec")
+  .attr("stroke", "#3fbc77");
 
-let keyPart = svg.append("g").attr("class", "keyPart");
-let arrowPart = svg.append("g").attr("class", "arrowPart");
-let bucketPart = svg.append("g").attr("class", "bucketPart");
+
+let keyPart = vizSection.append("g").attr("class", "keyPart");
+let arrowPart = vizSection.append("g").attr("class", "arrowPart");
+let bucketPart = vizSection.append("g").attr("class", "bucketPart");
 
 function drawViz(eht) {
 
+  drawValues(eht);
+  drawKeyArrow(eht);
+
+  // remove
+  d3.selectAll(".spliting").remove();
+  d3.selectAll(".arrowAnimated").remove();
+}
+function drawKeyArrow(eht) {
+
   var bucketData = eht.directories;
-  console.log(bucketData);
+  // console.log(bucketData);
 
   // hash keys
   let keyGroup = keyPart
@@ -665,48 +728,6 @@ function drawViz(eht) {
 
   flattedData = flatOutBuckets(uniqueBuckets);
 
-  console.log(flattedData);
-  let valueGroup = bucketPart
-      .selectAll(".valueGroup")
-      .data(flattedData, function(d,i){
-        return "value" + d['key']
-      });
-
-  let values = valueGroup.enter()
-    .append('g')
-      .attr('class', "valueGroup")
-
-  values
-      .append("text")
-        .text(d => d["key"])
-        .attr("id", d => "value" + d["key"])
-        .attr("text-anchor", "middle")
-        .attr('class', "valueTexts")
-        .attr("x", 0)
-        .attr("y", 0)
-        .attr("fill", "#000000");
-
-  values.insert("rect", "text")
-    .attr("id", d => "valueBBox" + d["key"])
-    .attr("class", "valueBBox bBox")
-    .attr("x", -15)
-    .attr("y", -15.5)
-    .attr("width", 30)
-    .attr("height", 20)
-    .attr("stroke", "#3f66bc")
-    .attr("fill", "#e0e9fa");
-
-  values.transition().attr("transform", getBucketLocation);
-
-  //exitingValues
-  let exitingValues = valueGroup.exit();
-  exitingValues.remove();
-
-  // update
-  d3.selectAll(".valueTexts").transition().attr("x", 0).attr("y",0);
-  d3.selectAll(".valueBBox").transition().attr("x", -15).attr("y", -15.5)
-  valueGroup.transition().attr("transform", getBucketLocation);
-
   // arrows connecting hash keys and bucket
   let arrowGroup = arrowPart.selectAll(".arrowGroup").data(bucketIndices, function(d,i) {
     return "arrow"+i
@@ -767,8 +788,8 @@ function drawViz(eht) {
       .attr("height", function (d,i) {
         return findLDBBox(d,i).height + 2*textBlockPaddingY;
       })
-      .attr("fill", "#fae0e0")
-      .attr("stroke", "#bc3f3f");
+      .attr("fill", "#e0faec")
+      .attr("stroke", "#3fbc77");
 
   let exitingLocalDepth1 = localDepthGroup1.exit();
   exitingLocalDepth1.remove();
@@ -783,10 +804,59 @@ function drawViz(eht) {
 
   // update globalDepthDigit accordingly
   globalDepthDigit.text(eht.globalDepth);
+}
+function drawValues(eht) {
+  var bucketData = eht.directories;
+  // console.log(bucketData);
 
-  // remove
-  d3.selectAll(".spliting").remove();
-  d3.selectAll(".arrowAnimated").remove();
+  // buckets & values
+  result = getUniqueBuckets(bucketData);
+  uniqueBuckets = result[0];
+  bucketIndices = result[1];
+
+  flattedData = flatOutBuckets(uniqueBuckets);
+
+  // console.log(flattedData);
+  let valueGroup = bucketPart
+      .selectAll(".valueGroup")
+      .data(flattedData, function(d,i){
+        return "value" + d['key']
+      });
+
+  let values = valueGroup.enter()
+    .append('g')
+      .attr('class', "valueGroup")
+
+  values
+      .append("text")
+        .text(d => d["key"])
+        .attr("id", d => "value" + d["key"])
+        .attr("text-anchor", "middle")
+        .attr('class', "valueTexts")
+        .attr("x", 0)
+        .attr("y", 0)
+        .attr("fill", "#000000");
+
+  values.insert("rect", "text")
+    .attr("id", d => "valueBBox" + d["key"])
+    .attr("class", "valueBBox bBox")
+    .attr("x", -15)
+    .attr("y", -15.5)
+    .attr("width", 30)
+    .attr("height", 20)
+    .attr("stroke", "#3f66bc")
+    .attr("fill", "#e0e9fa");
+
+  values.transition().attr("transform", getBucketLocation);
+
+  //exitingValues
+  let exitingValues = valueGroup.exit();
+  exitingValues.remove();
+
+  // update
+  d3.selectAll(".valueTexts").transition().attr("x", 0).attr("y",0);
+  d3.selectAll(".valueBBox").transition().attr("x", -15).attr("y", -15.5)
+  valueGroup.transition().attr("transform", getBucketLocation);
 }
 
 // drawViz();
@@ -824,19 +894,31 @@ document.getElementById("divInsert").appendChild(submitInsertBtn);
 function insertValue() {
   var hashedKey = null;
   var convKey = null;
+  var dup = false;
   newInsert = parseFloat(userInsert.value);
   userInsert.value = '';
-  if (newInsert < 0 || newInsert % 1 !== 0){
-    alert("Please enter a valid number! \n A valid number is a Positve Integer.")
+  for (var i = 1; i < insertLog.length; i++) {
+    if (newInsert == insertLog[i]['ins']) {
+      dup = true;
+    }
+  }
+  if (newInsert < 0 || newInsert % 1 !== 0 || dup){
+    alert("Please enter a valid number! \n A valid number is a Positve Integer that is not in the Extendible Hashing Table")
     newInsert = null;
   } else {
     // EHT.insertIntoTable(newInsert);
+    animationLock = false;
 
     //update states
     insertIdx++;
-    stateHash.push(false);
-    stateLocate.push(false);
-    stateInsert.push(false);
+
+    // change canvas size
+    desHeight =  600 + Math.max(0, insertIdx-18)*28 + "px";
+    document.getElementById("canvas").setAttribute("height", desHeight);
+
+    stateHash.push(true);
+    stateLocate.push(true);
+    stateInsert.push(true);
 
     hashedKey = EHT.hash(newInsert);
 
@@ -850,21 +932,27 @@ function insertValue() {
       "convkey": convKey
     })
 
+    showHash(insertIdx);
+    showLocate(insertIdx);
+
     if (bucket.isFull()) {
       if (bucket.localDepth == EHT.globalDepth) {
         EHT.growDirectories();
       }
 
       EHT.splitBucket(convKey);
+      showFullInsert(insertIdx);
+      showExpand(insertIdx);
       showSplit(insertIdx);
-      stateSplit.push(false);
+      stateFullInsert.push(true);
+      stateExpand.push(true);
     } else {
-      stateSplit.push(null);
+      stateFullInsert.push(null);
+      stateExpand.push(null);
+      showInsert(insertIdx);
     }
 
-    showHash(insertIdx);
-    showLocate(insertIdx);
-    showInsert(insertIdx);
+
 
     // update EHT record
     tempEHT = new ExtendibleHashingTable();
@@ -885,24 +973,35 @@ var delayStack = [];
 function showHash(idx) {
   processLog
     .append("text")
-      .attr("class", "unclickedText")
+      .attr("class", "textBtn clickedText")
       .attr("id", function () {
         return "hashed"+idx;
       })
       .text(insertLog[idx]["ins"])
       .attr("text-anchor", "middle")
-      .attr("x", 50)
+      .attr("x", 250)
       .attr("y", function() {
         return findLogBtnY(idx);
+      })
+      .on("click", function () {
+        delay = 0;
+        stateHashChange(idx, false);
+        stateLocateChange(idx, false);
+        if (stateFullInsert[idx] !== null) {
+          stateFullInsertChange(idx, false);
+          stateExpandChange(idx, false);
+        }
+        stateInsertChange(idx, false);
+        insertClicked(idx);
       });
 
   processLog
     .insert("rect", "text")
-      .attr("class", "bBox unclickedBBox")
+      .attr("class", "bBox clickedBBox")
       .attr("id", function () {
         return "hashedBBox"+idx
       })
-      .attr("x", 35)
+      .attr("x", 235)
       .attr("y", function () {
         return findLogBtnY(idx)-15.5;
       })
@@ -912,69 +1011,86 @@ function showHash(idx) {
   processLog
     .append("text")
       .text("hash")
-      .attr("x", 80)
+      .attr("x", 5)
       .attr("y", function () {
         return findLogBtnY(idx);
       })
-      .attr("class", "textBtn unclickedText")
+      .attr("class", "textBtn clickedText")
       .attr("id", function () {
         return "hashBtn" + idx
       })
       .on("click", function () {
         delay = 0;
-        if (hasCurrentAnimationFinished()) {
-          hashClicked(idx);
-          currentAnimFinalStateObj = { idx, type: 'hash' };
-        }
+        hashClicked(idx);
       });
 
   processLog
     .insert("rect", "text")
-      .attr("class", "bBox unclickedBBox")
+      .attr("class", "bBox clickedBBox")
       .attr("id", function () {
         return "hashBtnBBox"+idx
       })
       .attr("x", function () {
-        return findHashBBox(idx).x - textBlockPaddingX;
+        return findHashBBox(idx).x - btnPaddingX;
       })
       .attr("y", function () {
-        return findHashBBox(idx).y - textBlockPaddingY;
+        return findHashBBox(idx).y - btnPaddingY;
       })
       .attr("width", function () {
-        return findHashBBox(idx).width + 2*textBlockPaddingX;
+        return findHashBBox(idx).width + 2*btnPaddingX;
       })
       .attr("height", function () {
-        return findHashBBox(idx).height + 2*textBlockPaddingY;
+        return findHashBBox(idx).height + 2*btnPaddingY;
       });
 
 }
 function hashClicked(idx) {
   // console.log("hash clicked");
+  if (fullAnimate) {
+    if (idx>1 && !stateInsert[idx-1]) {
+      if (stateExpand[idx-1] === null) {
+        insertClicked(idx-1);
+        delay+=1000;
+        delayStack.push(delay);
+      } else {
+        splitClicked(idx-1);
+        delay+=1000;
+        delayStack.push(delay);
+      }
 
-  if (idx>1 && !stateInsert[idx-1]) {
-    insertClicked(idx-1);
-    delay+=500;
-    delayStack.push(delay);
+    }
+  } else {
+    delayStack.push(300);
   }
+
   // if the first insert
   if (idx == 1) {
     drawViz(ehtRecord[0]);
   }
 
   setTimeout(function () {
-    if (!stateHash[idx]) {
+    // if (!stateHash[idx]) {
+      //remove other hashed keys
+      processLog.selectAll(".hashed").remove();
+
       processLog.append("text")
         .text(insertLog[idx]["key"])
-        .attr("x", 10)
+        .attr("x", function () {
+          return 300
+        })
         .attr("y", function () {
           return findLogBtnY(idx);
         })
         .attr("text-anchor", "end")
-        .attr("id", function () { return "hash_" + insertLog[idx]["ins"] });
+        .attr("id", function () { return "hash_" + insertLog[idx]["ins"] })
+        .attr("class", "hashed")
+        .attr("x", function () {
+          return 275 + findHash_BBox(idx).width
+        });
 
       processLog
         .insert("rect", "text")
-          .attr("class", "bBox")
+          .attr("class", "bBox hashed")
           .attr("id", function () {
             return "hash_BBox"+idx
           })
@@ -990,24 +1106,28 @@ function hashClicked(idx) {
           .attr("height", function () {
             return findHash_BBox(idx).height + 2*textBlockPaddingY;
           })
-          .attr("fill", "#fae0e0")
-          .attr("stroke", "#bc3f3f");
+          .attr("fill", "#e0faec")
+          .attr("stroke", "#3fbc77");
 
       // emphasis
       processLog.append("text")
         .text(function () { return insertLog[idx]["key"].slice(-ehtRecord[idx-1].globalDepth) })
-        .attr("x", 10)
+        .attr("x", 300)
         .attr("y", function () {
           return findLogBtnY(idx);
         })
         .attr("fill", "#000")
-        .transition().duration(500)
         .attr("text-anchor", "end")
-        .attr("fill", "#f00")
+        .attr("x", function () {
+          return 275 + findHash_BBox(idx).width
+        })
         .attr("id", function () { return "hash_emph_" + insertLog[idx]["ins"] })
-        .attr("class", "hash_emph");
+        .attr("class", "hashed")
+        .transition().duration(500)
+          .attr("fill", "#f00");
 
-    }
+
+    // }
     // reset fill color of existing key emphasis
     svg.selectAll(".keyText").attr("fill", "#000");
     //remove existing animated line
@@ -1022,23 +1142,34 @@ function hashClicked(idx) {
     globalDepthDigit.attr("fill", "#000")
       .transition().duration(500).attr("fill", "#f00");
 
-    // change hashedKey color
-    d3.select("#hashed"+idx).attr("class", "clickedText");
-    d3.select("#hashedBBox"+idx).attr("class", "bBox clickedBBox");
+
+
 
     // set current hash clicked state to true
     stateHashChange(idx, true);
+    // set all previous clicked state to true;
+    for (var i = 1; i < idx; i++) {
+      stateHashChange(i, true);
+      stateLocateChange(i, true);
+      if (stateFullInsert[i] !== null) {
+        stateFullInsertChange(i, true);
+        stateExpandChange(i, true);
+      }
+      stateInsertChange(i, true);
+    }
     // set all later clicked state to false;
     stateLocateChange(idx, false);
-    if (stateSplit[idx] !== null) {
-      stateSplitChange(idx, false);
+    if (stateFullInsert[idx] !== null) {
+      stateFullInsertChange(idx, false);
+      stateExpandChange(idx, false);
     }
     stateInsertChange(idx, false);
     for (var i = idx+1; i < stateHash.length; i++) {
       stateHashChange(i, false);
       stateLocateChange(i, false);
-      if (stateSplit[i] !== null) {
-        stateSplitChange(i, false);
+      if (stateFullInsert[i] !== null) {
+        stateFullInsertChange(i, false);
+        stateExpandChange(i, false);
       }
       stateInsertChange(i, false);
     }
@@ -1046,43 +1177,41 @@ function hashClicked(idx) {
 
 }
 
+
 function showLocate(idx) {
   processLog
     .append("text")
       .text("locate")
-      .attr("x", 126)
+      .attr("x", 46)
       .attr("y", function () {
         return findLogBtnY(idx);
       })
-      .attr("class", "textBtn unclickedText")
+      .attr("class", "textBtn clickedText")
       .attr("id", function () {
         return "locateBtn" + idx
       })
       .on("click", function () {
         delay = 0;
-        if (hasCurrentAnimationFinished()) {
-          locateClicked(idx);
-          currentAnimFinalStateObj = { idx, type: 'locate' };
-        }
+        locateClicked(idx);
       });
 
   processLog
     .insert("rect", "text")
-      .attr("class", "bBox unclickedBBox")
+      .attr("class", "bBox clickedBBox")
       .attr("id", function () {
         return "locateBtnBBox"+idx
       })
       .attr("x", function () {
-        return findLocateBBox(idx).x - textBlockPaddingX;
+        return findLocateBBox(idx).x - btnPaddingX;
       })
       .attr("y", function () {
-        return findLocateBBox(idx).y - textBlockPaddingY;
+        return findLocateBBox(idx).y - btnPaddingY;
       })
       .attr("width", function () {
-        return findLocateBBox(idx).width + 2*textBlockPaddingX;
+        return findLocateBBox(idx).width + 2*btnPaddingX;
       })
       .attr("height", function () {
-        return findLocateBBox(idx).height + 2*textBlockPaddingY;
+        return findLocateBBox(idx).height + 2*btnPaddingY;
       });
 }
 function locateClicked(idx) {
@@ -1111,106 +1240,72 @@ function locateClicked(idx) {
     //animated line
     let arrow = svg.select("#arrow"+insertLog[idx]["convkey"]);
     arrow.each(function() {
-      let tempArrow = svg
+      let tempArrow = arrowPart
         .append("path")
           .attr("class", "arrowAnimated")
+          // .attr("transform", "translate(350, 0)")
           .attr("d", this.getAttribute('d'));
     })
-
-    // show Full if current bucket is Full
-    if (stateSplit[idx] !== null) {
-      splitSection.append("text")
-        .text("FULL")
-          .attr("id", "fullText")
-          .attr("x", function () {
-            return findFull(idx)[0]
-          })
-          .attr("y", function () {
-            return findFull(idx)[1]
-          })
-          .transition()
-            .attr("fill", "#f00")
-            .attr("class", "spliting");
-
-      splitSection.insert("rect", "text")
-        .attr("class", "spliting bBox")
-          .attr("x", function () {
-            return findFullBBox().x - textBlockPaddingX;
-          })
-          .attr("y", function () {
-            return findFullBBox().y - textBlockPaddingY;
-          })
-          .attr("width", function () {
-            return findFullBBox().width + 2*textBlockPaddingX;
-          })
-          .attr("height", function () {
-            return findFullBBox().height + 2*textBlockPaddingY;
-          })
-          .transition()
-            .attr("fill", "#fae0e0")
-            .attr("stroke", "#bc3f3f");
-    }
 
 
     // set current hash clicked state to true
     stateLocateChange(idx, true);
     // set all later clicked state to false;
-    if (stateSplit[idx] !== null) {
-      stateSplitChange(idx, false);
+    if (stateFullInsert[idx] !== null) {
+      stateFullInsertChange(idx, false);
+      stateExpandChange(idx, false);
     }
     stateInsertChange(idx, false);
     for (var i = idx+1; i < stateHash.length; i++) {
       stateHashChange(i, false);
       stateLocateChange(i, false);
-      if (stateSplit[i] !== null) {
-        stateSplitChange(i, false);
+      if (stateFullInsert[i] !== null) {
+        stateFullInsertChange(i, false);
+        stateExpandChange(i, false);
       }
       stateInsertChange(i, false);
     }
   }, delayStack.shift());
 }
 
-function showSplit(idx) {
+function showFullInsert(idx) {
   processLog
     .append("text")
-      .text("split")
-      .attr("x", 180)
-      .attr("y", function() {
+      .text("insert")
+      .attr("x", 95)
+      .attr("y", function () {
         return findLogBtnY(idx);
       })
-      .attr("class", "textBtn unclickedText")
+      .attr("class", "textBtn clickedText")
       .attr("id", function () {
-        return "splitBtn" +idx;
+        return "fullInsertBtn" + idx
       })
-      .on("click", function() {
+      .on("click", function () {
         delay = 0;
-        if (hasCurrentAnimationFinished()) {
-          splitClicked(idx);
-          currentAnimFinalStateObj = { idx, type: 'split' };
-        }
+        fullInsertClicked(idx);
       });
 
   processLog
     .insert("rect", "text")
-      .attr("class", "bBox unclickedBBox")
+      .attr("class", "bBox clickedBBox")
       .attr("id", function () {
-        return "splitBtnBBox"+idx
+        return "fullInsertBtnBBox"+idx
       })
       .attr("x", function () {
-        return findSplitBBox(idx).x - textBlockPaddingX;
+        return findFullInsertBBox(idx).x - btnPaddingX;
       })
       .attr("y", function () {
-        return findSplitBBox(idx).y - textBlockPaddingY;
+        return findFullInsertBBox(idx).y - btnPaddingY;
       })
       .attr("width", function () {
-        return findSplitBBox(idx).width + 2*textBlockPaddingX;
+        return findFullInsertBBox(idx).width + 2*btnPaddingX;
       })
       .attr("height", function () {
-        return findSplitBBox(idx).height + 2*textBlockPaddingY;
+        return findFullInsertBBox(idx).height + 2*btnPaddingY;
       });
-}
-function splitClicked(idx) {
 
+}
+function fullInsertClicked(idx) {
   if (!stateLocate[idx]) {
     locateClicked(idx);
     delay+=1000;
@@ -1218,176 +1313,380 @@ function splitClicked(idx) {
   }
 
   setTimeout(function () {
-    if (!stateSplit[idx]) {
-      // list this bucket to split
-      let arrow = svg.select("#arrow"+insertLog[idx]["convkey"]);
-      arrow.each(function() {
-        y = (this.getAttribute("d").split(",").pop() - 95) / 25 ;
-      })
-      var j = 0;
-      for (var i = 0; i < flattedData.length; i++) {
-        if (flattedData[i]["bucket"] == y) {
-          d3.select("#value" + flattedData[i]["value"]).transition()
-            .attr("x", function () {
-              return findToSplitX(y,j);
-            })
-            .attr("y", function () {
-              return findToSplitY(y,j);
-            });
-          d3.select("#valueBBox" + flattedData[i]["value"]).transition()
-            .attr("x", function () {
-              return findToSplitX(y,j)-15;
-            })
-            .attr("y", function () {
-              return findToSplitY(y,j)-15;
-            });
-
-          splitSection.append("text")
-            .text(EHT.hash(flattedData[i]["value"]))
-            .attr("class", "spliting")
-            .attr("id", function () {
-              return "splitHash" + j
-            })
-            // .transition()
-              .attr("x", 85)
-              .attr("y", function () {
-                return j*25;
-              });
-
-          splitSection.insert("rect", "text")
-            .attr("class", "bBox spliting")
-            .attr("x", function () {
-              return findSplitHashBBox(j).x - textBlockPaddingX;
-            })
-            .attr("y", function () {
-              return findSplitHashBBox(j).y - textBlockPaddingY;
-            })
-            .attr("width", function () {
-              return findSplitHashBBox(j).width + 2*textBlockPaddingX;
-            })
-            .attr("height", function () {
-              return findSplitHashBBox(j).height + 2*textBlockPaddingY;
-            })
-            .attr("fill", "#fae0e0")
-            .attr("stroke", "#bc3f3f");
-
-          j++;
-        }
-      }
-      // add the newly inserted
-      splitSection
-        .append("text")
-          .text(insertLog[idx]["ins"])
-          .attr("text-anchor", "middle")
-          .attr("class", "spliting")
-          .attr("x", 50)
-          .attr("y", 100);
-
-      splitSection.insert("rect", "text")
-        .attr("class", "spliting bBox")
+    drawViz(ehtRecord[idx-1]);
+    // show Full if current bucket is Full
+    splitSection.append("text")
+      .text("FULL")
+        .attr("id", "fullText")
+        .attr("x", function () {
+          return findFull(idx)[0]
+        })
+        .attr("y", function () {
+          return findFull(idx)[1]
+        })
         .transition()
-          .attr("x", 35)
-          .attr("y", 85)
-          .attr("width", 30)
-          .attr("height", 20)
-          .attr("stroke", "#3f66bc")
-          .attr("fill", "#e0e9fa");
+          .attr("fill", "#f00")
+          .attr("class", "spliting");
 
-      splitSection
+    splitSection.insert("rect", "text")
+      .attr("class", "spliting bBox")
+        .attr("x", function () {
+          return findFullBBox().x - textBlockPaddingX;
+        })
+        .attr("y", function () {
+          return findFullBBox().y - textBlockPaddingY;
+        })
+        .attr("width", function () {
+          return findFullBBox().width + 2*textBlockPaddingX;
+        })
+        .attr("height", function () {
+          return findFullBBox().height + 2*textBlockPaddingY;
+        })
+        .transition()
+          .attr("fill", "#e0faec")
+          .attr("stroke", "#3fbc77");
+
+    // draw the entering new value but with temp location
+    var bucketData = ehtRecord[idx].directories;
+    // console.log(bucketData);
+
+    // buckets & values
+    result = getUniqueBuckets(bucketData);
+    uniqueBuckets = result[0];
+    bucketIndices = result[1];
+
+    flattedData = flatOutBuckets(uniqueBuckets);
+
+    // console.log(flattedData);
+    let valueGroup = bucketPart
+        .selectAll(".valueGroup")
+        .data(flattedData, function(d,i){
+          return "value" + d['key']
+        });
+
+    let values = valueGroup.enter()
+      .append('g')
+        .attr('class', "valueGroup")
+
+    values
         .append("text")
-          .text(insertLog[idx]["key"])
-          .attr("class", "spliting")
-          .attr("id", function () {
-            return "splitHash" + 4
-          })
+          .text(d => d["key"])
+          .attr("id", d => "value" + d["key"])
+          .attr("text-anchor", "middle")
+          .attr('class', "valueTexts")
+          .attr("x", 0)
+          .attr("y", 0)
+          .attr("fill", "#000000");
+
+    values.insert("rect", "text")
+      .attr("id", d => "valueBBox" + d["key"])
+      .attr("class", "valueBBox bBox")
+      .attr("x", -15)
+      .attr("y", -15.5)
+      .attr("width", 30)
+      .attr("height", 20)
+      .attr("stroke", "#3f66bc")
+      .attr("fill", "#e0e9fa");
+
+    values.transition()
+      .attr("transform", function () {
+        y = 100+findFull(idx)[1]
+        return "translate(" + 170 + "," + y + ")"
+      });
+
+    // set current fullinsert clicked state to true
+    stateFullInsertChange(idx, true);
+    // set all later clicked state to false;
+    stateExpandChange(idx, false);
+    stateInsertChange(idx, false);
+    for (var i = idx+1; i < stateHash.length; i++) {
+      stateHashChange(i, false);
+      stateLocateChange(i, false);
+      if (stateFullInsert[i] !== null) {
+        stateFullInsertChange(i, false);
+        stateExpandChange(i, false);
+      }
+      stateInsertChange(i, false);
+    }
+
+  }, delayStack.shift());
+}
+function showExpand(idx) {
+  processLog
+    .append("text")
+      .text("expand")
+      .attr("x", 140.5)
+      .attr("y", function () {
+        return findLogBtnY(idx);
+      })
+      .attr("class", "textBtn clickedText")
+      .attr("id", function () {
+        return "expandBtn" + idx
+      })
+      .on("click", function () {
+        delay = 0;
+        expandClicked(idx);
+      });
+
+  processLog
+    .insert("rect", "text")
+      .attr("class", "bBox clickedBBox")
+      .attr("id", function () {
+        return "expandBtnBBox"+idx
+      })
+      .attr("x", function () {
+        return findExpandBBox(idx).x - btnPaddingX;
+      })
+      .attr("y", function () {
+        return findExpandBBox(idx).y - btnPaddingY;
+      })
+      .attr("width", function () {
+        return findExpandBBox(idx).width + 2*btnPaddingX;
+      })
+      .attr("height", function () {
+        return findExpandBBox(idx).height + 2*btnPaddingY;
+      });
+}
+function expandClicked(idx) {
+  if (!stateFullInsert[idx]) {
+    fullInsertClicked(idx);
+    delay+=1000;
+    delayStack.push(delay);
+  }
+
+  setTimeout(function () {
+    // update local depth, arrow, key and global depth
+    drawKeyArrow(ehtRecord[idx]);
+
+    // list this bucket to split
+    let arrow = svg.select("#arrow"+insertLog[idx]["convkey"]);
+    arrow.each(function() {
+      y = (this.getAttribute("d").split(",").pop() - 95) / 25 ;
+    })
+
+    let splitedBucket = Object.keys(ehtRecord[idx-1].directories[y].data);
+    // append the newly inserted key
+    splitedBucket.push(insertLog[idx]["ins"].toString());
+    // get this bucket's local Depth
+    let ld = ehtRecord[idx-1].directories[y].localDepth;
+    const bit = 1 << ld;
+
+    // set up two temporary buckets
+    let gp1 = [];
+    let gp2 = [];
+    for (var i = 0; i < splitedBucket.length; i++) {
+      const hashedKey = parseInt(splitedBucket[i]).toString(2);
+      if (hashedKey & bit) {
+        gp1.push(splitedBucket[i]);
+      } else {
+        gp2.push(splitedBucket[i]);
+      }
+    }
+    var gp1Counter = 0;
+    var gp2Counter = 0;
+    var gp1BBoxCounter = 0;
+    var gp2BBoxCounter = 0;
+    var gp1HashCounter = 0;
+    var gp2HashCounter = 0;
+
+    for (var i = 0; i < splitedBucket.length; i++) {
+      // reset parent node translation
+      let v = d3.select("#value" + splitedBucket[i]);
+      let g = v.select(function() { return this.parentNode; });
+      g.attr("transform", "");
+
+      d3.select("#value" + splitedBucket[i]).transition()
+        .attr("transform, none")
+        .attr("x", function () {
+          return 430;
+        })
+        .attr("y", function () {
+          if (gp1.includes(splitedBucket[i])) {
+            loc = gp1Counter;
+            gp1Counter++;
+          } else {
+            loc = gp2Counter + 4.5;
+            gp2Counter++;
+          }
+          return 100+loc*25;
+        });
+
+      d3.select("#valueBBox" + splitedBucket[i]).transition()
+        .attr("x", function () {
+          return 430-15;
+        })
+        .attr("y", function () {
+          if (gp1.includes(splitedBucket[i])) {
+            loc = gp1BBoxCounter;
+            gp1BBoxCounter++;
+          } else {
+            loc = gp2BBoxCounter + 4.5;
+            gp2BBoxCounter++;
+          }
+          return 100+loc*25-15;
+        });
+
+      splitSection.append("text")
+        .text(EHT.hash(splitedBucket[i]))
+        .attr("class", "spliting")
+        .attr("id", function () {
+          return "splitHash" + i
+        })
+        // .transition()
           .attr("x", 85)
-          .attr("y", 100);
+          .attr("y", function () {
+            if (gp1.includes(splitedBucket[i])) {
+              loc = gp1HashCounter;
+              gp1HashCounter++;
+            } else {
+              loc = gp2HashCounter + 4.5;
+              gp2HashCounter++;
+            }
+            return loc*25;
+          });
 
       splitSection.insert("rect", "text")
-        .attr("class", "spliting bBox")
-        // .transition()
-          .attr("x", function () {
-            return findSplitHashBBox(4).x - textBlockPaddingX;
-          })
-          .attr("y", function () {
-            return findSplitHashBBox(4).y - textBlockPaddingY;
-          })
-          .attr("width", function () {
-            return findSplitHashBBox(4).width + 2*textBlockPaddingX;
-          })
-          .attr("height", function () {
-            return findSplitHashBBox(4).height + 2*textBlockPaddingY;
-          })
-          .attr("fill", "#fae0e0")
-          .attr("stroke", "#bc3f3f");
-
+        .attr("class", "bBox spliting")
+        .attr("x", function () {
+          return findSplitHashBBox(i).x - textBlockPaddingX;
+        })
+        .attr("y", function () {
+          return findSplitHashBBox(i).y - textBlockPaddingY;
+        })
+        .attr("width", function () {
+          return findSplitHashBBox(i).width + 2*textBlockPaddingX;
+        })
+        .attr("height", function () {
+          return findSplitHashBBox(i).height + 2*textBlockPaddingY;
+        })
+        .attr("fill", "#e0faec")
+        .attr("stroke", "#3fbc77");
     }
-    // set current insert clicked state to true
-    stateSplitChange(idx, true);
+
+    // set current expand clicked state to true
+    stateExpandChange(idx, true);
     // set all later clicked state to false;
     stateInsertChange(idx, false);
     for (var i = idx+1; i < stateHash.length; i++) {
       stateHashChange(i, false);
       stateLocateChange(i, false);
-      if (stateSplit[i] !== null) {
-        stateSplitChange(i, false);
+      if (stateFullInsert[i] !== null) {
+        stateFullInsertChange(i, false);
+        stateExpandChange(i, false);
+      }
+      stateInsertChange(i, false);
+    }
+
+
+  }, delayStack.shift());
+}
+function showSplit(idx) {
+  processLog
+    .append("text")
+      .text("split")
+      .attr("x", 199)
+      .attr("y", function () {
+        return findLogBtnY(idx);
+      })
+      .attr("class", "textBtn clickedText")
+      .attr("id", function () {
+        return "splitBtn" + idx
+      })
+      .on("click", function () {
+        delay = 0;
+        splitClicked(idx);
+      });
+
+  processLog
+    .insert("rect", "text")
+      .attr("class", "bBox clickedBBox")
+      .attr("id", function () {
+        return "splitBtnBBox"+idx
+      })
+      .attr("x", function () {
+        return findSplitBBox(idx).x - btnPaddingX;
+      })
+      .attr("y", function () {
+        return findSplitBBox(idx).y - btnPaddingY;
+      })
+      .attr("width", function () {
+        return findSplitBBox(idx).width + 2*btnPaddingX;
+      })
+      .attr("height", function () {
+        return findSplitBBox(idx).height + 2*btnPaddingY;
+      });
+}
+function splitClicked(idx) {
+
+  if (!stateExpand[idx]) {
+    expandClicked(idx);
+    delay+=1000;
+    delayStack.push(delay);
+  }
+  setTimeout(function () {
+    drawViz(ehtRecord[idx]);
+    // set current split(insert) clicked state to true
+    stateInsertChange(idx, true);
+    for (var i = idx+1; i < stateHash.length; i++) {
+      stateHashChange(i, false);
+      stateLocateChange(i, false);
+      if (stateFullInsert[i] !== null) {
+        stateFullInsertChange(i, false);
+        stateExpandChange(i, false);
       }
       stateInsertChange(i, false);
     }
   }, delayStack.shift());
+
 }
+
 
 function showInsert(idx) {
   processLog
     .append("text")
       .text("insert")
-      .attr("x", function() {
-        return findInsert(idx)
-      })
+      .attr("x", 95)
       .attr("y", function() {
         return findLogBtnY(idx);
       })
-      .attr("class", "textBtn unclickedText")
+      .attr("class", "textBtn clickedText")
       .attr("id", function () {
         return "insertBtn"+idx
       })
       .on("click", function () {
         delay = 0;
-        if (hasCurrentAnimationFinished()) {
-          insertClicked(idx);
-          currentAnimFinalStateObj = { idx, type: 'insert' };
-        }
+        insertClicked(idx);
       });
 
   processLog
     .insert("rect", "text")
-      .attr("class", "bBox unclickedBBox")
+      .attr("class", "bBox clickedBBox")
       .attr("id", function () {
         return "insertBtnBBox"+idx
       })
       .attr("x", function () {
-        return findInsertBBox(idx).x - textBlockPaddingX;
+        return findInsertBBox(idx).x - btnPaddingX;
       })
       .attr("y", function () {
-        return findInsertBBox(idx).y - textBlockPaddingY;
+        return findInsertBBox(idx).y - btnPaddingY;
       })
       .attr("width", function () {
-        return findInsertBBox(idx).width + 2*textBlockPaddingX;
+        return findInsertBBox(idx).width + 2*btnPaddingX;
       })
       .attr("height", function () {
-        return findInsertBBox(idx).height + 2*textBlockPaddingY;
+        return findInsertBBox(idx).height + 2*btnPaddingY;
       });
 }
 function insertClicked(idx) {
-  if (stateSplit[idx] === null) {
+  if (stateExpand[idx] === null) {
     if (!stateLocate[idx]) {
       locateClicked(idx);
       delay+=1000;
       delayStack.push(delay);
     }
   } else {
-    if (!stateSplit[idx]) {
-      splitClicked(idx);
+    if (!stateExpand[idx]) {
+      expandClicked(idx);
       delay+=1000;
       delayStack.push(delay);
     }
@@ -1403,8 +1702,9 @@ function insertClicked(idx) {
     for (var i = idx+1; i < stateHash.length; i++) {
       stateHashChange(i, false);
       stateLocateChange(i, false);
-      if (stateSplit[i] !== null) {
-        stateSplitChange(i, false);
+      if (stateFullInsert[i] !== null) {
+        stateFullInsertChange(i, false);
+        stateExpandChange(i, false);
       }
       stateInsertChange(i, false);
     }
@@ -1412,25 +1712,8 @@ function insertClicked(idx) {
 
 }
 
-// returns a bool whether the current animation has finished
-function hasCurrentAnimationFinished() {
-  const { idx, type } = currentAnimFinalStateObj;
-  
-  switch (type) {
-    case 'hash':
-      return stateHash[idx];
-    case 'locate':
-      return stateLocate[idx];
-    case 'split':
-      return stateSplit[idx];
-    case 'insert':
-      return stateInsert[idx];
-    default:
-      return true;
-  }
-}
 
-
+// Interactive Features 3 ===============================================
 // find key
 // create a seperate div for each interactive part
 let userFindDiv = document.createElement("div");
@@ -1459,73 +1742,74 @@ document.getElementById("divFind").appendChild(submitFindBtn);
 function findValue() {
   if (stateInsert.slice(1, stateInsert.length).includes(false)) {
     alert("Please finish all the inserts in order to find.")
-  }
-  let find = parseFloat(userFind.value);
-
-  // clear the input field.
-  userFind.value = '';
-  var found = false;
-  for (var i = 1; i < insertLog.length; i++) {
-    if (find == insertLog[i]['ins']) {
-      found = true;
-    }
-  }
-
-  if (find < 0 || find % 1 !== 0 || !found){
-    alert("Please enter a valid number! \n A valid number is a Positve Integer that is IN the extendible hashing table.")
-    find = null;
   } else {
-    d3.selectAll(".findingStatic").remove();
-    //remove animated line;
-    d3.selectAll(".arrowAnimated").remove();
-    // remove hashed keys
-    d3.selectAll(".finding").remove();
+    let find = parseFloat(userFind.value);
 
-    findSection
-      .append("text")
-        .attr("class", "findingStatic unclickedText")
-        .attr("id", "findNum")
-        .text(find)
-        .attr("text-anchor", "middle")
-        .attr("x", 50)
-        .attr("y", 40);
+    // clear the input field.
+    userFind.value = '';
+    var found = false;
+    for (var i = 1; i < insertLog.length; i++) {
+      if (find == insertLog[i]['ins']) {
+        found = true;
+      }
+    }
 
-    findSection
-      .insert("rect", "text")
-        .attr("class", "findingStatic bBox unclickedBBox")
-        .attr("id", "findNumBBox")
-        .attr("x", 35)
-        .attr("y", 24.5)
-        .attr("width", 30)
-        .attr("height", 20);
+    if (find < 0 || find % 1 !== 0 || !found){
+      alert("Please enter a valid number! \n A valid number is a Positve Integer that is IN the extendible hashing table.")
+      find = null;
+    } else {
+      d3.selectAll(".findingStatic").remove();
+      //remove animated line;
+      d3.selectAll(".arrowAnimated").remove();
+      // remove hashed keys
+      d3.selectAll(".finding").remove();
 
-    findSection
-      .append("text")
-        .attr("class", "findingStatic textBtn unclickedText")
-        .attr("id", "hashfindBtn")
-        .text("hash&find")
-        .attr("x", 80)
-        .attr("y", 40)
-        .on("click", function () {
-          findClicked(find);
-        });
+      findSection
+        .append("text")
+          .attr("class", "findingStatic unclickedText")
+          .attr("id", "findNum")
+          .text(find)
+          .attr("text-anchor", "middle")
+          .attr("x", 250)
+          .attr("y", 10);
 
-    findSection
-      .insert("rect", ".findingStatic")
-        .attr("class", "findingStatic bBox unclickedBBox")
-        .attr("id", "hashfindBtnBBox")
-        .attr("x", function () {
-          return findFindHashBBox().x - textBlockPaddingX;
-        })
-        .attr("y", function () {
-          return findFindHashBBox().y - textBlockPaddingY;
-        })
-        .attr("width", function () {
-          return findFindHashBBox().width + 2*textBlockPaddingX;
-        })
-        .attr("height", function () {
-          return findFindHashBBox().height + 2*textBlockPaddingY;
-        });
+      findSection
+        .insert("rect", "text")
+          .attr("class", "findingStatic bBox unclickedBBox")
+          .attr("id", "findNumBBox")
+          .attr("x", 235)
+          .attr("y", -5.5)
+          .attr("width", 30)
+          .attr("height", 20);
+
+      findSection
+        .append("text")
+          .attr("class", "findingStatic textBtn unclickedText")
+          .attr("id", "hashfindBtn")
+          .text("hash&find")
+          .attr("x", 150)
+          .attr("y", 10)
+          .on("click", function () {
+            findClicked(find);
+          });
+
+      findSection
+        .insert("rect", ".findingStatic")
+          .attr("class", "findingStatic bBox unclickedBBox")
+          .attr("id", "hashfindBtnBBox")
+          .attr("x", function () {
+            return findFindHashBBox().x - btnPaddingX;
+          })
+          .attr("y", function () {
+            return findFindHashBBox().y - btnPaddingY;
+          })
+          .attr("width", function () {
+            return findFindHashBBox().width + 2*btnPaddingX;
+          })
+          .attr("height", function () {
+            return findFindHashBBox().height + 2*btnPaddingY;
+          });
+    }
   }
 }
 
@@ -1556,8 +1840,11 @@ function findClicked(find) {
       .attr("id", "hashedfind")
       .text(hashedKey)
       .attr("text-anchor", "end")
-      .attr("x", 10)
-      .attr("y", 40);
+      .attr("x", 300)
+      .attr("y", 10)
+      .attr("x", function () {
+        return 275 + findFindHashedBBox().width
+      });
 
   findSection.insert("rect", "text")
     .attr("class", "finding bBox")
@@ -1573,8 +1860,8 @@ function findClicked(find) {
     .attr("height", function () {
       return findFindHashedBBox().height + 2*textBlockPaddingY;
     })
-    .attr("fill", "#fae0e0")
-    .attr("stroke", "#bc3f3f");;
+    .attr("fill", "#e0faec")
+    .attr("stroke", "#3fbc77");
 
   // globalDepth.attr("fill", "#000")
   //   .transition().duration(500).attr("fill", "#ff0");
@@ -1584,7 +1871,7 @@ function findClicked(find) {
   //animated line
   let arrow = svg.select("#arrow"+convKey);
   arrow.each(function() {
-    let tempArrow = svg
+    let tempArrow = arrowPart
       .append("path")
         .transition().delay(500)
           .attr("d", this.getAttribute('d'))
@@ -1599,13 +1886,70 @@ function findClicked(find) {
       .attr("class", "finding")
       .text(hashedKey.slice(-currentEHT.globalDepth))
       .attr("text-anchor", "end")
-      .attr("x", 10)
-      .attr("y", 40)
+      .attr("x", 300)
+      .attr("y", 10)
+      .attr("x", function () {
+        return 275 + findFindHashedBBox().width
+      })
       .transition().delay(500)
         .attr("fill", "#f00");
 
   d3.select("#value"+find)
     .transition().delay(1000)
       .attr("fill", "#f00");
+
+}
+
+
+// Interactive Features 4 ===============================================
+// play all
+// add play all BUTTON
+let playAllBtn = svg.append("text")
+    .text("Play All")
+    .attr("id", "playAllBtn")
+    .attr("class", "textBtn")
+    .attr("x", 10)
+    .attr("y", 30)
+    .on("click", playAll);
+
+let playAllBtnBbox = svg.insert("rect", "text")
+    .attr("x", function () {
+      return findPlayAllBBox().x - textBlockPaddingX;
+    })
+    .attr("y", function () {
+      return findPlayAllBBox().y - textBlockPaddingY;
+    })
+    .attr("width", function () {
+      return findPlayAllBBox().width + 2*textBlockPaddingX;
+    })
+    .attr("height", function () {
+      return findPlayAllBBox().height + 2*textBlockPaddingY;
+    })
+    .attr("class", "bBox")
+    .attr("fill", "#fce5d3")
+    .attr("stroke", "orange");
+
+function playAll() {
+  if (animationLock) {
+    alert("Current Extendible Hashing Table is EMPTY!")
+  } else {
+    fullAnimate = true;
+    // set all active state to false;
+    for (var i = 1; i < stateHash.length; i++) {
+      stateHashChange(i, false);
+      stateLocateChange(i, false);
+      if (stateFullInsert[i] !== null) {
+        stateFullInsertChange(i, false);
+        stateExpandChange(i, false);
+      }
+      stateInsertChange(i, false);
+    }
+    if (stateExpand.slice(-1)[0] === null) {
+      insertClicked(stateHash.length-1);
+    } else {
+      splitClicked(stateHash.length-1);
+    }
+    fullAnimate = false;
+  }
 
 }
