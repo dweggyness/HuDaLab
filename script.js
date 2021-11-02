@@ -1527,7 +1527,7 @@ function expandClicked(idx) {
         });
 
       splitSection.append("text")
-        .text(EHT.hash(splitedBucket[i]))
+        .text(parseInt(splitedBucket[i]).toString(2))
         .attr("class", "spliting")
         .attr("id", function () {
           return "splitHash" + i
