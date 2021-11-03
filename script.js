@@ -173,9 +173,36 @@ class ExtendibleHashingTable {
 
     // stop: stop at max size of the directory array
     // step: if first bucket is '010', then second bucket is simply '110', so basically add '100' to bucket 1
-    for (var i = this.hash(key) & bit - 1; i < (1 << this.globalDepth); i += bit) {
-      this.directories[i] = (i & bit) ? tempBucket1 : tempBucket2;
+    const hashedKey = this.hash(key);
+    for (var i = hashedKey & bit - 1; i < (1 << this.globalDepth); i += bit) {
+      if (i & bit) {
+        this.directories[i] = tempBucket1;
+      } else {
+        this.directories[i] = tempBucket2;
+      }
     }
+
+    // check for edge case, where all the split keys go into the same new bucket
+    const newBucketKey1 = hashedKey & bit - 1;
+    const newBucketKey2 = (hashedKey & bit - 1) + bit;
+    const newBucket1 = this.directories[newBucketKey1];
+    const newBucket2 = this.directories[newBucketKey2];
+    
+    // check the sizes of the two new buckets that were split. if any of them are full, split again
+    console.log('d');
+    this.display();
+    if (newBucket1.isFull()) {
+      if (newBucket1.localDepth == this.globalDepth) {
+        this.growDirectories();
+      }
+      this.splitBucket(newBucketKey1)
+    } else if (newBucket2.isFull()) {
+      if (newBucket2.localDepth == this.globalDepth) {
+        this.growDirectories();
+      }
+      this.splitBucket(newBucketKey2)
+    }
+
   }
 
   /* Inserts {data}, hashing it before inserting into the Extendible Hashing Table
@@ -201,6 +228,16 @@ class ExtendibleHashingTable {
   clean() {
     this.globalDepth = 1;
     this.directories = [new Bucket(), new Bucket()];
+  }
+
+  
+  // helper function to display and debug and look around, feel free to remove after ur done
+  display() {
+    console.log("Global depth:", this.globalDepth, " Bucket size:", bucketSize, "\n");
+    for (var i = 0; i < (1 << this.globalDepth); i++) {
+      console.log(this.hash(i).slice(-this.globalDepth).padStart(this.globalDepth, "0"), " - ", "Depth: " + this.directories[i].localDepth + " "
+      , this.directories[i].data);
+    }
   }
 
   /* takes a new EHT as param, deepcopy from original EHT to a new EHT object.
