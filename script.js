@@ -189,7 +189,6 @@ class ExtendibleHashingTable {
     const newBucket2 = this.directories[newBucketKey2];
     
     // check the sizes of the two new buckets that were split. if any of them are full, split again
-    console.log('d');
     this.display();
     if (newBucket1.isFull()) {
       if (newBucket1.localDepth == this.globalDepth) {
