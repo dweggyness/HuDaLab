@@ -273,6 +273,12 @@ userNum.setAttribute("placeholder", "Positive integer");
 document.getElementById("divIniNum").appendChild(userNum);
 userNum.setAttribute("id", "userNum");
 userNum.setAttribute("style", "width:150px");
+userNum.addEventListener("keypress", (e) => {
+  if (e.key == "Enter") {
+    e.preventDefault();
+    iniEHT();
+  }
+});
 let submitNumBtn = document.createElement("BUTTON");
 submitNumBtn.setAttribute("type", "button");
 submitNumBtn.setAttribute("onclick", "iniEHT()")
@@ -877,6 +883,13 @@ userInsert.setAttribute("type", "number");
 userInsert.setAttribute("placeholder", "Positive integer");
 userInsert.setAttribute("id", "userInsert");
 userInsert.setAttribute("style", "width:150px");
+// upon pressing enter
+userInsert.addEventListener("keypress", (e) => {
+  if (e.key == "Enter") {
+    e.preventDefault();
+    insertValue();
+  }
+});
 var submitInsertBtn = document.createElement("BUTTON");
 submitInsertBtn.setAttribute("type", "button");
 submitInsertBtn.setAttribute("onclick", "insertValue()")
@@ -1726,6 +1739,12 @@ userFind.setAttribute("type", "number");
 userFind.setAttribute("placeholder", "Positive integer");
 userFind.setAttribute("id", "userInsert");
 userFind.setAttribute("style", "width:150px");
+userFind.addEventListener("keypress", (e) => {
+  if (e.key == "Enter") {
+    e.preventDefault();
+    findValue();
+  }
+});
 var submitFindBtn = document.createElement("BUTTON");
 submitFindBtn.setAttribute("type", "button");
 submitFindBtn.setAttribute("onclick", "findValue()")
