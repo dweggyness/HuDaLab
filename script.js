@@ -187,21 +187,28 @@ class ExtendibleHashingTable {
     const newBucketKey2 = (hashedKey & bit - 1) + bit;
     const newBucket1 = this.directories[newBucketKey1];
     const newBucket2 = this.directories[newBucketKey2];
-    
+
+    return [newBucketKey1, newBucket1, newBucketKey2, newBucket2]
+  }
+
+  splitAgain(newBucketKey1, newBucket1, newBucketKey2, newBucket2) {
     // check the sizes of the two new buckets that were split. if any of them are full, split again
     this.display();
     if (newBucket1.isFull()) {
       if (newBucket1.localDepth == this.globalDepth) {
         this.growDirectories();
       }
-      this.splitBucket(newBucketKey1)
+      this.splitBucket(newBucketKey1);
+      return true
     } else if (newBucket2.isFull()) {
       if (newBucket2.localDepth == this.globalDepth) {
         this.growDirectories();
       }
-      this.splitBucket(newBucketKey2)
+      this.splitBucket(newBucketKey2);
+      return true
+    } else {
+      return false
     }
-
   }
 
   /* Inserts {data}, hashing it before inserting into the Extendible Hashing Table
@@ -218,7 +225,12 @@ class ExtendibleHashingTable {
         this.growDirectories();
       }
 
-      this.splitBucket(key);
+      b = this.splitBucket(key);
+      b1Key = b[0];
+      b1 = b[1];
+      b2Key = b[2];
+      b2 = b[3];
+      splitAgain = this.splitAgain(b1Key, b1, b2Key, b2);
     }
   }
 
@@ -229,7 +241,7 @@ class ExtendibleHashingTable {
     this.directories = [new Bucket(), new Bucket()];
   }
 
-  
+
   // helper function to display and debug and look around, feel free to remove after ur done
   display() {
     console.log("Global depth:", this.globalDepth, " Bucket size:", bucketSize, "\n");
@@ -284,12 +296,12 @@ let ehtRecord = [initialEHT];
 let flattedData;
 
 // states to record whether each button has been clicked.
-let stateHash = [];
-let stateLocate = [];
-let stateFullInsert = [];
-let stateExpand = [];
+let stateHash = [false];
+let stateLocate = [false];
+let stateFullInsert = [false];
+let stateExpand = [false];
 // let stateSplit = [];
-let stateInsert = [];
+let stateInsert = [false];
 var insertIdx = 0;
 let insertLog = [null];
 
@@ -395,22 +407,54 @@ function iniEHT() {
           EHT.growDirectories();
         }
 
-        EHT.splitBucket(convKey);
+        // EHT.splitBucket(convKey);
+        b = EHT.splitBucket(convKey);
+
         showFullInsert(insertIdx);
         showExpand(insertIdx);
         showSplit(insertIdx);
         stateFullInsert.push(true);
         stateExpand.push(true);
+
+
+        // update EHT record
+        tempEHT = new ExtendibleHashingTable();
+        EHT.deepcopyto(tempEHT);
+        ehtRecord.push(tempEHT);
+
+
+        b1Key = b[0];
+        b1 = b[1];
+        b2Key = b[2];
+        b2 = b[3];
+        splitAgain = EHT.splitAgain(b1Key, b1, b2Key, b2);
+        if (splitAgain) {
+          insertIdx++;
+          showExpand(insertIdx);
+          showSplit(insertIdx);
+          stateHash.push(null);
+          stateLocate.push(null);
+          stateFullInsert.push(null);
+          // stateFullInsert.push(true);
+          stateExpand.push(true);
+          stateInsert.push(true);
+
+          // potentially update EHT record
+          tempEHT_splitagain = new ExtendibleHashingTable();
+          EHT.deepcopyto(tempEHT_splitagain);
+          ehtRecord.push(tempEHT_splitagain);
+        }
       } else {
         stateFullInsert.push(null);
         stateExpand.push(null);
         showInsert(insertIdx);
+        // update EHT record
+        tempEHT = new ExtendibleHashingTable();
+        EHT.deepcopyto(tempEHT);
+        ehtRecord.push(tempEHT);
       }
+      showHashed(insertIdx);
 
-      // update EHT record
-      tempEHT = new ExtendibleHashingTable();
-      EHT.deepcopyto(tempEHT);
-      ehtRecord.push(tempEHT);
 
     }
     drawViz(EHT);
@@ -491,14 +535,25 @@ function stateHashChange(idx, state) {
     d3.select("#hashBtn"+idx).attr("class", "textBtn clickedText");
     d3.select("#hashBtnBBox"+idx).attr("class", "bBox clickedBBox");
     // change current key color
-    d3.select("#hashed"+idx).attr("class", "textBtn clickedText");
-    d3.select("#hashedBBox"+idx).attr("class", "bBox clickedBBox");
+    if (stateFullInsert[idx+1] === null && stateExpand[idx+1] !== null) {
+      d3.select("#hashed"+(idx+1)).attr("class", "textBtn clickedText");
+      d3.select("#hashedBBox"+(idx+1)).attr("class", "bBox clickedBBox");
+    } else {
+      d3.select("#hashed"+idx).attr("class", "textBtn clickedText");
+      d3.select("#hashedBBox"+idx).attr("class", "bBox clickedBBox");
+    }
   } else {
     d3.select("#hashBtn"+idx).attr("class", "textBtn unclickedText");
     d3.select("#hashBtnBBox"+idx).attr("class", "bBox unclickedBBox");
     // change current key color
-    d3.select("#hashed"+idx).attr("class", "textBtn unclickedText");
-    d3.select("#hashedBBox"+idx).attr("class", "bBox unclickedBBox");
+    if (stateFullInsert[idx+1] === null && stateExpand[idx+1] !== null) {
+      d3.select("#hashed"+(idx+1)).attr("class", "textBtn unclickedText");
+      d3.select("#hashedBBox"+(idx+1)).attr("class", "bBox unclickedBBox");
+    } else {
+      d3.select("#hashed"+idx).attr("class", "textBtn unclickedText");
+      d3.select("#hashedBBox"+idx).attr("class", "bBox unclickedBBox");
+    }
+
   }
 }
 function stateLocateChange(idx, state) {
@@ -810,7 +865,7 @@ function drawKeyArrow(eht) {
         .attr("id", function (d, i) {
           return "ld" + i;
         })
-        .attr("x", 325)
+        .attr("x", 350)
         .attr("y", function (d, i) {
           return 100 + i * 25
         });
@@ -989,25 +1044,65 @@ function insertValue() {
         EHT.growDirectories();
       }
 
-      EHT.splitBucket(convKey);
+      // EHT.splitBucket(convKey);
+      b = EHT.splitBucket(convKey);
+
       showFullInsert(insertIdx);
       showExpand(insertIdx);
       showSplit(insertIdx);
       stateFullInsert.push(true);
       stateExpand.push(true);
+
+
+      // update EHT record
+      tempEHT = new ExtendibleHashingTable();
+      EHT.deepcopyto(tempEHT);
+      ehtRecord.push(tempEHT);
+
+      convKey = hashedKey & ((1 << EHT.globalDepth) - 1);
+
+      b1Key = b[0];
+      b1 = b[1];
+      b2Key = b[2];
+      b2 = b[3];
+      splitAgain = EHT.splitAgain(b1Key, b1, b2Key, b2);
+
+      if (splitAgain) {
+        insertIdx++;
+
+        insertLog.push({
+          "ins": newInsert,
+          "key": hashedKey,
+          "convkey": convKey
+        })
+
+        showExpand(insertIdx);
+        showSplit(insertIdx);
+        stateHash.push(null);
+        stateLocate.push(null);
+        stateFullInsert.push(null);
+        // stateFullInsert.push(true);
+        stateExpand.push(true);
+        stateInsert.push(true);
+
+        tempEHT_splitagain = new ExtendibleHashingTable();
+        EHT.deepcopyto(tempEHT_splitagain);
+        ehtRecord.push(tempEHT_splitagain);
+      }
     } else {
       stateFullInsert.push(null);
       stateExpand.push(null);
       showInsert(insertIdx);
+      // update EHT record
+      tempEHT = new ExtendibleHashingTable();
+      EHT.deepcopyto(tempEHT);
+      ehtRecord.push(tempEHT);
     }
 
+    showHashed(insertIdx);
 
-
-    // update EHT record
-    tempEHT = new ExtendibleHashingTable();
-    EHT.deepcopyto(tempEHT);
-    ehtRecord.push(tempEHT);
   }
+  drawViz(EHT);
 
 }
 
@@ -1019,7 +1114,8 @@ function insertValue() {
 var delay = 0;
 var delayStack = [];
 
-function showHash(idx) {
+var thisFullAnimate = false;
+function showHashed(idx) {
   processLog
     .append("text")
       .attr("class", "textBtn clickedText")
@@ -1034,10 +1130,22 @@ function showHash(idx) {
       })
       .on("click", function () {
         delay = 0;
-        stateHashChange(idx, false);
-        stateLocateChange(idx, false);
-        if (stateFullInsert[idx] !== null) {
-          stateFullInsertChange(idx, false);
+        thisFullAnimate = true;
+
+        if (stateHash[idx] !== null) {
+          stateHashChange(idx, false);
+          stateLocateChange(idx, false);
+        } else {
+          stateHashChange(idx-1, false);
+          stateLocateChange(idx-1, false);
+          stateFullInsertChange(idx-1, false);
+          stateExpandChange(idx-1, false);
+          stateInsertChange(idx-1, false);
+        }
+        if (stateExpand[idx] !== null) {
+          if (stateFullInsert[idx] !== null) {
+            stateFullInsertChange(idx, false);
+          }
           stateExpandChange(idx, false);
         }
         stateInsertChange(idx, false);
@@ -1056,7 +1164,8 @@ function showHash(idx) {
       })
       .attr("width", 30)
       .attr("height", 20);
-
+}
+function showHash(idx) {
   processLog
     .append("text")
       .text("hash")
@@ -1128,7 +1237,11 @@ function hashClicked(idx) {
           return 300
         })
         .attr("y", function () {
-          return findLogBtnY(idx);
+          if (stateHash[idx+1] === null) {
+            return findLogBtnY(idx+1);
+          } else {
+            return findLogBtnY(idx);
+          }
         })
         .attr("text-anchor", "end")
         .attr("id", function () { return "hash_" + insertLog[idx]["ins"] })
@@ -1163,7 +1276,11 @@ function hashClicked(idx) {
         .text(function () { return insertLog[idx]["key"].slice(-ehtRecord[idx-1].globalDepth) })
         .attr("x", 300)
         .attr("y", function () {
-          return findLogBtnY(idx);
+          if (stateHash[idx+1] === null) {
+            return findLogBtnY(idx+1);
+          } else {
+            return findLogBtnY(idx);
+          }
         })
         .attr("fill", "#000")
         .attr("text-anchor", "end")
@@ -1198,26 +1315,36 @@ function hashClicked(idx) {
     stateHashChange(idx, true);
     // set all previous clicked state to true;
     for (var i = 1; i < idx; i++) {
-      stateHashChange(i, true);
-      stateLocateChange(i, true);
-      if (stateFullInsert[i] !== null) {
-        stateFullInsertChange(i, true);
+      if (stateHash[i] !== null) {
+        stateHashChange(i, true);
+        stateLocateChange(i, true);
+      }
+      if (stateExpand[i] !== null) {
+        if (stateFullInsert[i] !== null) {
+          stateFullInsertChange(i, true);
+        }
         stateExpandChange(i, true);
       }
       stateInsertChange(i, true);
     }
     // set all later clicked state to false;
     stateLocateChange(idx, false);
-    if (stateFullInsert[idx] !== null) {
-      stateFullInsertChange(idx, false);
+    if (stateExpand[idx] !== null) {
+      if (stateFullInsert[idx] !== null) {
+        stateFullInsertChange(idx, false);
+      }
       stateExpandChange(idx, false);
     }
     stateInsertChange(idx, false);
     for (var i = idx+1; i < stateHash.length; i++) {
-      stateHashChange(i, false);
-      stateLocateChange(i, false);
-      if (stateFullInsert[i] !== null) {
-        stateFullInsertChange(i, false);
+      if (stateHash[i] !== null) {
+        stateHashChange(i, false);
+        stateLocateChange(i, false);
+      }
+      if (stateExpand[i] !== null) {
+        if (stateFullInsert[i] !== null) {
+          stateFullInsertChange(i, false);
+        }
         stateExpandChange(i, false);
       }
       stateInsertChange(i, false);
@@ -1300,16 +1427,22 @@ function locateClicked(idx) {
     // set current hash clicked state to true
     stateLocateChange(idx, true);
     // set all later clicked state to false;
-    if (stateFullInsert[idx] !== null) {
-      stateFullInsertChange(idx, false);
+    if (stateExpand[idx] !== null) {
+      if (stateFullInsert[idx] !== null) {
+        stateFullInsertChange(idx, false);
+      }
       stateExpandChange(idx, false);
     }
     stateInsertChange(idx, false);
     for (var i = idx+1; i < stateHash.length; i++) {
-      stateHashChange(i, false);
-      stateLocateChange(i, false);
-      if (stateFullInsert[i] !== null) {
-        stateFullInsertChange(i, false);
+      if (stateHash[i] !== null) {
+        stateHashChange(i, false);
+        stateLocateChange(i, false);
+      }
+      if (stateExpand[i] !== null) {
+        if (stateFullInsert[i] !== null) {
+          stateFullInsertChange(i, false);
+        }
         stateExpandChange(i, false);
       }
       stateInsertChange(i, false);
@@ -1449,10 +1582,14 @@ function fullInsertClicked(idx) {
     stateExpandChange(idx, false);
     stateInsertChange(idx, false);
     for (var i = idx+1; i < stateHash.length; i++) {
-      stateHashChange(i, false);
-      stateLocateChange(i, false);
-      if (stateFullInsert[i] !== null) {
-        stateFullInsertChange(i, false);
+      if (stateHash[i] !== null) {
+        stateHashChange(i, false);
+        stateLocateChange(i, false);
+      }
+      if (stateExpand[i] !== null) {
+        if (stateFullInsert[i] !== null) {
+          stateFullInsertChange(i, false);
+        }
         stateExpandChange(i, false);
       }
       stateInsertChange(i, false);
@@ -1497,15 +1634,50 @@ function showExpand(idx) {
       });
 }
 function expandClicked(idx) {
-  if (!stateFullInsert[idx]) {
-    fullInsertClicked(idx);
-    delay+=1000;
-    delayStack.push(delay);
+  if (stateFullInsert[idx] === null) {
+    if (fullAnimate || thisFullAnimate) {
+      splitClicked(idx-1);
+      delay+=1000;
+      delayStack.push(delay);
+      thisFullAnimate = false;
+    } else {
+      // set all previous clicked state to true;
+      for (var i = 1; i < idx; i++) {
+        if (stateHash[i] !== null) {
+          stateHashChange(i, true);
+          stateLocateChange(i, true);
+        }
+        if (stateExpand[i] !== null) {
+          if (stateFullInsert[i] !== null) {
+            stateFullInsertChange(i, true);
+          }
+          stateExpandChange(i, true);
+        }
+        stateInsertChange(i, true);
+      }
+      splitClicked(idx-1);
+      delay+=500;
+      delayStack.push(delay);
+    }
+  } else {
+    if (!stateFullInsert[idx]) {
+      if (!thisFullAnimate && stateExpand[idx+1] !== null && stateFullInsert[idx+1] === null) {
+        stateLocateChange(idx, true);
+      }
+
+      fullInsertClicked(idx);
+      delay+=1000;
+      delayStack.push(delay);
+    }
   }
 
   setTimeout(function () {
+
     // update local depth, arrow, key and global depth
     drawKeyArrow(ehtRecord[idx]);
+
+    d3.selectAll(".spliting").remove();
+
 
     // list this bucket to split
     let arrow = svg.select("#arrow"+insertLog[idx]["convkey"]);
@@ -1514,8 +1686,13 @@ function expandClicked(idx) {
     })
 
     let splitedBucket = Object.keys(ehtRecord[idx-1].directories[y].data);
-    // append the newly inserted key
-    splitedBucket.push(insertLog[idx]["ins"].toString());
+
+    //second split?
+    if (stateFullInsert[idx] !== null) {
+      // append the newly inserted key
+      splitedBucket.push(insertLog[idx]["ins"].toString());
+    }
+
     // get this bucket's local Depth
     let ld = ehtRecord[idx-1].directories[y].localDepth;
     const bit = 1 << ld;
@@ -1614,13 +1791,18 @@ function expandClicked(idx) {
 
     // set current expand clicked state to true
     stateExpandChange(idx, true);
+
     // set all later clicked state to false;
     stateInsertChange(idx, false);
     for (var i = idx+1; i < stateHash.length; i++) {
-      stateHashChange(i, false);
-      stateLocateChange(i, false);
-      if (stateFullInsert[i] !== null) {
-        stateFullInsertChange(i, false);
+      if (stateHash[i] !== null) {
+        stateHashChange(i, false);
+        stateLocateChange(i, false);
+      }
+      if (stateExpand[i] !== null) {
+        if (stateFullInsert[i] !== null) {
+          stateFullInsertChange(i, false);
+        }
         stateExpandChange(i, false);
       }
       stateInsertChange(i, false);
@@ -1677,10 +1859,14 @@ function splitClicked(idx) {
     // set current split(insert) clicked state to true
     stateInsertChange(idx, true);
     for (var i = idx+1; i < stateHash.length; i++) {
-      stateHashChange(i, false);
-      stateLocateChange(i, false);
-      if (stateFullInsert[i] !== null) {
-        stateFullInsertChange(i, false);
+      if (stateHash[i] !== null) {
+        stateHashChange(i, false);
+        stateLocateChange(i, false);
+      }
+      if (stateExpand[i] !== null) {
+        if (stateFullInsert[i] !== null) {
+          stateFullInsertChange(i, false);
+        }
         stateExpandChange(i, false);
       }
       stateInsertChange(i, false);
@@ -1749,10 +1935,14 @@ function insertClicked(idx) {
     stateInsertChange(idx, true);
     // set all later clicked state to false;
     for (var i = idx+1; i < stateHash.length; i++) {
-      stateHashChange(i, false);
-      stateLocateChange(i, false);
-      if (stateFullInsert[i] !== null) {
-        stateFullInsertChange(i, false);
+      if (stateHash[i] !== null) {
+        stateHashChange(i, false);
+        stateLocateChange(i, false);
+      }
+      if (stateExpand[i] !== null) {
+        if (stateFullInsert[i] !== null) {
+          stateFullInsertChange(i, false);
+        }
         stateExpandChange(i, false);
       }
       stateInsertChange(i, false);
@@ -1991,10 +2181,14 @@ function playAll() {
     fullAnimate = true;
     // set all active state to false;
     for (var i = 1; i < stateHash.length; i++) {
-      stateHashChange(i, false);
-      stateLocateChange(i, false);
-      if (stateFullInsert[i] !== null) {
-        stateFullInsertChange(i, false);
+      if (stateHash[i] !== null) {
+        stateHashChange(i, false);
+        stateLocateChange(i, false);
+      }
+      if (stateExpand[i] !== null) {
+        if (stateFullInsert[i] !== null) {
+          stateFullInsertChange(i, false);
+        }
         stateExpandChange(i, false);
       }
       stateInsertChange(i, false);
