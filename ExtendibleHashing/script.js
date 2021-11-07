@@ -684,7 +684,7 @@ function findFull(idx) {
   arrow.each(function() {
     y = this.getAttribute("d").split(",").pop() - 95;
   })
-  return [-25, y];
+  return [0, y];
 }
 
 
@@ -694,7 +694,7 @@ function findFull(idx) {
 let localDepth = svg.append("text")
   .attr("id", "localDepth")
   .text("Local Depth")
-  .attr("x", 640)
+  .attr("x", 660)
   .attr("y", 70)
   .attr("fill", "#000000");
 
@@ -1661,10 +1661,7 @@ function expandClicked(idx) {
     }
   } else {
     if (!stateFullInsert[idx]) {
-      if (!thisFullAnimate && stateExpand[idx+1] !== null && stateFullInsert[idx+1] === null) {
-        stateLocateChange(idx, true);
-      }
-
+      if (!thisFullAnimate && stateExpand[idx+1] !== null && stateFullInsert[idx+1] === null) {stateLocateChange(idx, true);}
       fullInsertClicked(idx);
       delay+=1000;
       delayStack.push(delay);
