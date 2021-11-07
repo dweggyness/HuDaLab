@@ -24,8 +24,9 @@ document.getElementById("container-1").appendChild(btnDiv);
 
 var svg = d3.select("#container-1")
     .append("svg")
-      .attr("width", 900 + 'px')
-      .attr("height", 600 + 'px')
+      .attr("width", 450 + 'px')
+      // .attr("height", 600 + 'px')
+      .attr("viewBox" , "0 0 900 600")
       // .attr("preserveAspectRatio","none")
       // .attr("width", width + margin.left + margin.right)
       // .attr("height", height + margin.top + margin.bottom)
@@ -193,7 +194,7 @@ class ExtendibleHashingTable {
 
   splitAgain(newBucketKey1, newBucket1, newBucketKey2, newBucket2) {
     // check the sizes of the two new buckets that were split. if any of them are full, split again
-    this.display();
+    // this.display();
     if (newBucket1.isFull()) {
       if (newBucket1.localDepth == this.globalDepth) {
         this.growDirectories();
@@ -243,13 +244,13 @@ class ExtendibleHashingTable {
 
 
   // helper function to display and debug and look around, feel free to remove after ur done
-  display() {
-    console.log("Global depth:", this.globalDepth, " Bucket size:", bucketSize, "\n");
-    for (var i = 0; i < (1 << this.globalDepth); i++) {
-      console.log(this.hash(i).slice(-this.globalDepth).padStart(this.globalDepth, "0"), " - ", "Depth: " + this.directories[i].localDepth + " "
-      , this.directories[i].data);
-    }
-  }
+  // display() {
+  //   console.log("Global depth:", this.globalDepth, " Bucket size:", bucketSize, "\n");
+  //   for (var i = 0; i < (1 << this.globalDepth); i++) {
+  //     console.log(this.hash(i).slice(-this.globalDepth).padStart(this.globalDepth, "0"), " - ", "Depth: " + this.directories[i].localDepth + " "
+  //     , this.directories[i].data);
+  //   }
+  // }
 
   /* takes a new EHT as param, deepcopy from original EHT to a new EHT object.
   one thing important is that simply creating new buckets and assigning the same parameters of the buckets from the original EHT are not ideal, because we have the entries in the directories pointing to same buckets.
@@ -350,8 +351,9 @@ function iniEHT() {
     EHT.clean();
 
     // change canvas size
-    desHeight =  600 + Math.max(0, newIniNum-18)*28 + "px";
-    document.getElementById("canvas").setAttribute("height", desHeight);
+    desHeight =  600 + Math.max(0, newIniNum-18)*28;
+    desViewBox = "0 0 900 " + desHeight;
+    document.getElementById("canvas").setAttribute("viewBox", desViewBox);
 
     animationLock = false;
     ehtRecord = [initialEHT];
@@ -422,14 +424,23 @@ function iniEHT() {
         EHT.deepcopyto(tempEHT);
         ehtRecord.push(tempEHT);
 
+        convKey = hashedKey & ((1 << EHT.globalDepth) - 1);
 
         b1Key = b[0];
         b1 = b[1];
         b2Key = b[2];
         b2 = b[3];
         splitAgain = EHT.splitAgain(b1Key, b1, b2Key, b2);
+
         if (splitAgain) {
           insertIdx++;
+
+          insertLog.push({
+            "ins": val,
+            "key": hashedKey,
+            "convkey": convKey
+          })
+
           showExpand(insertIdx);
           showSplit(insertIdx);
           stateHash.push(null);
@@ -461,7 +472,11 @@ function iniEHT() {
   }
 }
 
-
+function getBucketBGLocation(d, i) {
+  let x = 200
+  let y = 100 + i * 25;
+  return "translate(" + x + ", " + y + ")"
+}
 function getBucketLocation(d) {
   let x = 200 + d["order"] * 30;
   let y = 100 + d["bucket"] * 25;
@@ -730,7 +745,7 @@ let globalDepthDigitBBox = svg.insert("rect", "#globalDepthDigit")
   .attr("fill", "#e0faec")
   .attr("stroke", "#3fbc77");
 
-
+let bucketBGPart = vizSection.append("g").attr("class", "bucketBGPart");
 let keyPart = vizSection.append("g").attr("class", "keyPart");
 let arrowPart = vizSection.append("g").attr("class", "arrowPart");
 let bucketPart = vizSection.append("g").attr("class", "bucketPart");
@@ -913,6 +928,28 @@ function drawValues(eht) {
 
   flattedData = flatOutBuckets(uniqueBuckets);
 
+  //empty buckets background
+  let bucketBGGroup = bucketBGPart
+      .selectAll(".bucketBGGroup")
+      .data(uniqueBuckets, function (d, i) {
+        return "buckets" + i
+      })
+  let buckets = bucketBGGroup.enter()
+    .append("rect")
+      .attr("class", "bucketBGGroup bBox")
+      .attr("x", -15)
+      .attr("y", -18)
+      .attr("width", 120)
+      .attr("height", 25)
+      .attr("stroke", "#8c8c8c")
+      .attr("fill", "#ececec")
+      .attr("transform", getBucketBGLocation);
+
+  let exitingBuckets = bucketBGGroup.exit();
+  exitingBuckets.remove();
+
+  bucketBGGroup.transition().attr("transform", getBucketBGLocation);
+
   // console.log(flattedData);
   let valueGroup = bucketPart
       .selectAll(".valueGroup")
@@ -1016,9 +1053,9 @@ function insertValue() {
     //update states
     insertIdx++;
 
-    // change canvas size
-    desHeight =  600 + Math.max(0, insertIdx-18)*28 + "px";
-    document.getElementById("canvas").setAttribute("height", desHeight);
+    // // change canvas size
+    // desHeight =  600 + Math.max(0, insertIdx-18)*28 + "px";
+    // document.getElementById("canvas").setAttribute("height", desHeight);
 
     stateHash.push(true);
     stateLocate.push(true);
@@ -2176,6 +2213,7 @@ function playAll() {
     alert("Current Extendible Hashing Table is EMPTY!")
   } else {
     fullAnimate = true;
+    thisFullAnimate = true;
     // set all active state to false;
     for (var i = 1; i < stateHash.length; i++) {
       if (stateHash[i] !== null) {
@@ -2189,12 +2227,14 @@ function playAll() {
         stateExpandChange(i, false);
       }
       stateInsertChange(i, false);
+      console.log(stateHash);
     }
     if (stateExpand.slice(-1)[0] === null) {
       insertClicked(stateHash.length-1);
     } else {
       splitClicked(stateHash.length-1);
     }
+
     fullAnimate = false;
   }
 
