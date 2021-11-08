@@ -290,6 +290,15 @@ function findSplit2BBox(idx) {
 function findPointerBBox() {
   return d3.select("#splitPointer").node().getBBox();
 }
+function findRoundBBox() {
+  return d3.select("#round").node().getBBox();
+}
+function findHashingBBox() {
+  return d3.select("#hashingValue").node().getBBox();
+}
+function findHashedBBox() {
+  return d3.select("#hashedValue").node().getBBox();
+}
 
 //@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 // initialize canvas
@@ -344,13 +353,14 @@ let bucketPart = vizSection.append("g").attr("class", "bucketPart");
 let pointerPart = vizSection.append("g").attr("class", "pointerPart")
       // hide split pointer at first
       .attr("opacity", "0");
+let paramPart = vizSection.append("g").attr("class", "paramPart");
 
 //@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 // splitPointer
 pointerPart
     .append("text")
       .attr("id", "splitPointer")
-      .text("splitPointer")
+      .text("Split Pointer →")
       .attr("text-anchor", "middle")
       .attr("x", -60)
       .attr("y", 100)
@@ -360,19 +370,118 @@ pointerPart
       .attr("id", "splitPointerBBox")
       .attr("class", "bBox")
       .attr("x", function () {
-        return findPointerBBox().x - btnPaddingX;
+        return findPointerBBox().x - textBlockPaddingX;
       })
       .attr("y", function () {
-        return findPointerBBox().y - btnPaddingY;
+        return findPointerBBox().y - textBlockPaddingY;
       })
       .attr("width", function () {
-        return findPointerBBox().width + 2*btnPaddingX;
+        return findPointerBBox().width + 2*textBlockPaddingX;
       })
       .attr("height", function () {
-        return findPointerBBox().height + 2*btnPaddingY;
+        return findPointerBBox().height + 2*textBlockPaddingY;
       })
-      .attr("stroke", "#3f66bc")
-      .attr("fill", "#e0e9fa");
+      .attr("fill", "#e0faec")
+      .attr("stroke", "#3fbc77");
+
+// round (temp name)
+paramPart.append("text")
+    .text("Round: ")
+      .attr("x", -130)
+      .attr("y", 30)
+      .attr("fill", "#000000");
+
+let round = paramPart.append("text")
+    .text("0")
+    .attr("id", "round")
+    .attr("x", -60)
+    .attr("y", 30)
+    .attr("fill", "#000000");
+let roundBBox = paramPart.insert("rect", "text")
+    .attr("id", "splitPointerBBox")
+    .attr("class", "bBox")
+    .attr("x", function () {
+      return findRoundBBox().x - textBlockPaddingX;
+    })
+    .attr("y", function () {
+      return findRoundBBox().y - textBlockPaddingY;
+    })
+    .attr("width", function () {
+      return findRoundBBox().width + 2*textBlockPaddingX;
+    })
+    .attr("height", function () {
+      return findRoundBBox().height + 2*textBlockPaddingY;
+    })
+    .attr("fill", "#e0faec")
+    .attr("stroke", "#3fbc77");
+
+// hash function
+paramPart.append("text")
+    .text("Hash Function: ")
+    .attr("x", -20)
+    .attr("y", 30)
+    .attr("fill", "#000000");
+
+let hashingValue = paramPart.append("text")
+    .text("xx")
+    .attr("text-anchor", "middle")
+    .attr("id", "hashingValue")
+    .attr("x", 110)
+    .attr("y", 30);
+
+let hashingValueBBox = paramPart.insert("rect", "text")
+    .attr("class", "bBox")
+      .attr("x", function () {
+        return findHashingBBox().x - textBlockPaddingX;
+      })
+      .attr("y", function () {
+        return findHashingBBox().y - textBlockPaddingY;
+      })
+      .attr("width", function () {
+        return findHashingBBox().width + 2*textBlockPaddingX;
+      })
+      .attr("height", function () {
+        return findHashingBBox().height + 2*textBlockPaddingY;
+      })
+      .attr("fill", "#e0faec")
+      .attr("stroke", "#3fbc77");
+
+paramPart.append("text")
+    .text("% (2 \u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0 × 4) = ")
+    .attr("x", 130)
+    .attr("y", 30)
+    .attr("fill", "#000000");
+paramPart.append("text")
+    .text("round")
+    .attr("x", 165)
+    .attr("y", 20)
+    .attr("font-size", 14)
+    .attr("fill", "#000000");
+
+let hashedValue = paramPart.append("text")
+    .text("p")
+    .attr("text-anchor", "middle")
+    .attr("id", "hashedValue")
+    .attr("x", 270)
+    .attr("y", 30);
+
+let hashedValueBBox = paramPart.insert("rect", "text")
+    .attr("class", "bBox")
+      .attr("x", function () {
+        return findHashedBBox().x - textBlockPaddingX;
+      })
+      .attr("y", function () {
+        return findHashedBBox().y - textBlockPaddingY;
+      })
+      .attr("width", function () {
+        return findHashedBBox().width + 2*textBlockPaddingX;
+      })
+      .attr("height", function () {
+        return findHashedBBox().height + 2*textBlockPaddingY;
+      })
+      .attr("fill", "#e0faec")
+      .attr("stroke", "#3fbc77");
+
 
 
 //@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
@@ -476,6 +585,14 @@ function drawViz(lht) {
   pointerPart.transition().attr("transform", function () {
     return getPointerLocation(lht.splitPointer)
   });
+  // update round
+  round.transition().text(lht.round);
+  roundBBox.transition().attr("width", function () {
+    return findRoundBBox().width + 2*textBlockPaddingX
+  });
+  // reset hashing value
+  hashingValue.transition().text("xx");
+  hashedValue.transition().text("p");
 
 }
 
@@ -494,7 +611,7 @@ function showNum(idx) {
         return findLogBtnY(idx)
       })
       .on("click", function () {
-
+        numClicked(idx);
       });
 
   processLog
@@ -509,6 +626,9 @@ function showNum(idx) {
       })
       .attr("width", 30)
       .attr("height", 20);
+}
+function numClicked(idx) {
+
 }
 
 function showHash(idx) {
@@ -546,8 +666,19 @@ function showHash(idx) {
         return findHashBBox(idx).height + 2*btnPaddingY;
       });
 }
-
 function hashClicked(idx) {
+  // draw previous step
+  drawViz(lhtRecord[idx-1]);
+
+
+  hashingValue.transition().text(insertLog[idx]);
+  hashingValueBBox.transition().attr("width", function () {
+    return findHashingBBox().width + 2*textBlockPaddingX
+  });
+  hashedValue.transition().text(lhtRecord[idx].hash(insertLog[idx]));
+  hashedValueBBox.transition().attr("width", function () {
+    return findHashedBBox().width + 2*textBlockPaddingX
+  });
 
 }
 
@@ -786,4 +917,77 @@ function iniLHT() {
     }
     drawViz(LHT);
   }
+}
+
+
+//@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+// User Insert New Value
+// create a seperate div for each interactive part
+let userInsertDiv = document.createElement("div");
+userInsertDiv.setAttribute("class", "btndiv");
+userInsertDiv.setAttribute("id", "divInsert");
+document.getElementById("button-container").appendChild(userInsertDiv);
+
+var userInsert = document.createElement("INPUT");
+userInsert.setAttribute("type", "number");
+userInsert.setAttribute("placeholder", "Positive integer");
+userInsert.setAttribute("id", "userInsert");
+userInsert.setAttribute("style", "width:150px");
+// upon pressing enter
+userInsert.addEventListener("keypress", (e) => {
+  if (e.key == "Enter") {
+    e.preventDefault();
+    insertValue();
+  }
+});
+var submitInsertBtn = document.createElement("BUTTON");
+submitInsertBtn.setAttribute("type", "button");
+submitInsertBtn.setAttribute("onclick", "insertValue()")
+submitInsertBtn.innerHTML = "Submit";
+submitInsertBtn.setAttribute("id", "submitInsertBtn");
+var insertText = document.createElement("p");
+insertText.setAttribute("class", "btnText");
+insertText.innerHTML = "Add another key: ";
+document.getElementById("divInsert").appendChild(insertText);
+document.getElementById("divInsert").appendChild(userInsert);
+document.getElementById("divInsert").appendChild(submitInsertBtn);
+
+function insertValue() {
+
+}
+
+
+//@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+// User Find Key
+// create a seperate div for each interactive part
+let userFindDiv = document.createElement("div");
+userFindDiv.setAttribute("class", "btndiv");
+userFindDiv.setAttribute("id", "divFind");
+document.getElementById("button-container").appendChild(userFindDiv);
+
+var userFind = document.createElement("INPUT");
+userFind.setAttribute("type", "number");
+userFind.setAttribute("placeholder", "Positive integer");
+userFind.setAttribute("id", "userInsert");
+userFind.setAttribute("style", "width:150px");
+userFind.addEventListener("keypress", (e) => {
+  if (e.key == "Enter") {
+    e.preventDefault();
+    findValue();
+  }
+});
+var submitFindBtn = document.createElement("BUTTON");
+submitFindBtn.setAttribute("type", "button");
+submitFindBtn.setAttribute("onclick", "findValue()")
+submitFindBtn.innerHTML = "Submit";
+submitFindBtn.setAttribute("id", "submitFindBtn");
+var findText = document.createElement("p");
+findText.setAttribute("class", "btnText");
+findText.innerHTML = "Find a key: ";
+document.getElementById("divFind").appendChild(findText);
+document.getElementById("divFind").appendChild(userFind);
+document.getElementById("divFind").appendChild(submitFindBtn);
+
+function findValue() {
+
 }
