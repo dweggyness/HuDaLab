@@ -24,7 +24,7 @@ document.getElementById("container-1").appendChild(btnDiv);
 
 var svg = d3.select("#container-1")
     .append("svg")
-      .attr("width", 450 + 'px')
+      .attr("width", 600 + 'px')
       // .attr("height", 600 + 'px')
       .attr("viewBox" , "0 0 900 600")
       // .attr("preserveAspectRatio","none")
@@ -1053,9 +1053,10 @@ function insertValue() {
     //update states
     insertIdx++;
 
-    // // change canvas size
-    // desHeight =  600 + Math.max(0, insertIdx-18)*28 + "px";
-    // document.getElementById("canvas").setAttribute("height", desHeight);
+    // change canvas size
+    desHeight =  600 + Math.max(0, insertIdx-18)*28;
+    desViewBox = "0 0 900 " + desHeight;
+    document.getElementById("canvas").setAttribute("viewBox", desViewBox);
 
     stateHash.push(true);
     stateLocate.push(true);
