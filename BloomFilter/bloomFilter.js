@@ -102,8 +102,8 @@ class BloomFilter {
   // 'False Positive' - The three bits are true, but it does not exist inside the bloom filter.
   // 'Negative' - Not all three bits are true, it is guaranteed the str does not exist.
   find(str) {
-    const { hash1, hash2, hash3 } = this.hash(str);
     if (DEBUG_FLAG) console.log(`\nFinding "${str}" in BFT`);
+    const { hash1, hash2, hash3 } = this.hash(str);
 
     // if all the bits are '1', its possible that the {str} exists in the bloom filter.
     if (this.array[hash1] && this.array[hash2] && this.array[hash3]) {
