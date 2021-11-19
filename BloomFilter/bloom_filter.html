@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <style>
+      #canvas {
+        /* background-color: #d4d4d4; */
+      }
+
+      #button-container {
+        display: flex;
+      }
+
+      .textBtn:hover {
+        cursor: pointer;
+      }
+
+      html {
+        font-family: sans-serif;
+      }
+
+      text {
+        -webkit-user-select: none;
+        -khtml-user-select: none;
+        -moz-user-select: none;
+        -o-user-select: none;
+        user-select: none;
+      }
+
+      @keyframes dash {
+        to {
+          stroke-dashoffset: 0;
+        }
+      }
+
+      path {
+        fill:none;
+      }
+
+      .arrowAnimated {
+        stroke: red;
+        stroke-width: 2.5px;
+        stroke-dasharray: 500;
+        stroke-dashoffset: 500;
+        animation: dash 1s ease forwards;
+      }
+
+      .bBox {
+        rx:2;
+        ry:2;
+      }
+
+      .unclickedBBox {
+        stroke: none;
+        fill: #ececec;
+      }
+      .unclickedText {
+        stroke: none;
+        fill: #8c8c8c;
+      }
+      .clickedBBox {
+        stroke: none;
+        fill: #e0e9fa;
+      }
+      .clickedText {
+        stroke: none;
+        fill: #146396;
+      }
+
+    </style>
+    <meta charset="utf-8">
+    <title>Bloom Filter</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+  </head>
+  <body>
+    <div id="bft-container">
+
+    </div>
+
+    <script type="text/javascript" src="libs/blmFilter/blmFilter-vis.js"></script>
+    <!-- <script type="text/javascript" src="script_new.js"></script> -->
+
+  </body>
+</html>
