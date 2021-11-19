@@ -432,10 +432,10 @@ const btnPaddingY = 1.5;
 // add container for BUTTONS
 var btnDiv = document.createElement("div");
 btnDiv.setAttribute("id", "button-container");
-document.getElementById("container-1").appendChild(btnDiv);
+document.getElementById("lht-container").appendChild(btnDiv);
 
 
-var svg = d3.select("#container-1")
+var svg = d3.select("#lht-container")
     .append("svg")
       .attr("width", 600 + 'px')
       // .attr("height", 600 + 'px')
@@ -784,12 +784,14 @@ function showNum(idx) {
       })
       .text(insertLog[idx])
       .attr("text-anchor", "middle")
-      .attr("x", 225)
+      .attr("x", 235)
       .attr("y", function() {
         return findLogBtnY(idx)
       })
       .on("click", function () {
-        numClicked(idx);
+        if (!playAllClicked) {
+          numClicked(idx);
+        }
       });
 
   processLog
@@ -798,7 +800,7 @@ function showNum(idx) {
       .attr("id", function () {
         return "hashedBBox"+idx
       })
-      .attr("x", 210)
+      .attr("x", 235-15)
       .attr("y", function () {
         return findLogBtnY(idx)-15.5;
       })
@@ -860,9 +862,11 @@ function showHash(idx) {
         return "hashBtn" + idx
       })
       .on("click", function () {
-        // draw previous step
-        drawViz(lhtRecord[idx-1]);
-        hashClicked(idx);
+        if (!playAllClicked) {
+          // draw previous step
+          drawViz(lhtRecord[idx-1]);
+          hashClicked(idx);
+        }
       });
 
   processLog
@@ -938,9 +942,11 @@ function showHash2(idx) {
         return "hash2Btn" + idx
       })
       .on("click", function () {
-        // draw previous step
-        drawViz(lhtRecord[idx-1]);
-        hash2Clicked(idx);
+        if (!playAllClicked) {
+          // draw previous step
+          drawViz(lhtRecord[idx-1]);
+          hash2Clicked(idx);
+        }
       });
 
   processLog
@@ -1016,7 +1022,9 @@ function showInsert(idx) {
         return "insertBtn" + idx
       })
       .on("click", function () {
-         stateSplit[idx] ? fullInsertClicked(idx):insertClicked(idx)
+        if (!playAllClicked) {
+          stateSplit[idx] ? fullInsertClicked(idx):insertClicked(idx)
+        }
       });
 
   processLog
@@ -1088,7 +1096,7 @@ function fullInsertClicked(idx) {
 function showSplit1(idx) {
   processLog
     .append("text")
-      .text("split1")
+      .text("rehash")
       .attr("x", () => stateHash2[idx] ? 130.5:88.5)
       .attr("y", function () {
         return findLogBtnY(idx)
@@ -1098,7 +1106,9 @@ function showSplit1(idx) {
         return "split1Btn" + idx
       })
       .on("click", function () {
-        split1Clicked(idx);
+        if (!playAllClicked) {
+          split1Clicked(idx);
+        }
       });
 
   processLog
@@ -1236,8 +1246,8 @@ function split1Clicked(idx) {
 function showSplit2(idx) {
   processLog
     .append("text")
-      .text("split2")
-      .attr("x", () => stateHash2[idx] ? 175:133)
+      .text("split")
+      .attr("x", () => stateHash2[idx] ? 186:144)
       .attr("y", function () {
         return findLogBtnY(idx);
       })
@@ -1246,7 +1256,9 @@ function showSplit2(idx) {
         return "split2Btn" + idx
       })
       .on("click", function () {
-        split2Clicked(idx);
+        if (!playAllClicked) {
+          split2Clicked(idx);
+        }
       });
 
   processLog
@@ -1296,6 +1308,8 @@ let insertLog = [null];
 let stateHash2 = [null];
 let stateSplit = [null];
 
+var animationCounter = 1;
+
 var newIniNum;
 
 //@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
@@ -1317,17 +1331,12 @@ userNum.addEventListener("keypress", (e) => {
     iniLHT();
   }
 });
-let submitNumBtn = document.createElement("BUTTON");
-submitNumBtn.setAttribute("type", "button");
-submitNumBtn.setAttribute("onclick", "iniLHT()")
-submitNumBtn.innerHTML = "Submit";
-submitNumBtn.setAttribute("id", "submitNumBtn");
+
 var numText = document.createElement("p");
 numText.setAttribute("class", "btnText");
 numText.innerHTML = "# of keys to insert:";
 document.getElementById("divIniNum").appendChild(numText);
 document.getElementById("divIniNum").appendChild(userNum);
-document.getElementById("divIniNum").appendChild(submitNumBtn);
 
 
 function iniLHT() {
@@ -1352,6 +1361,7 @@ function iniLHT() {
     insertLog = [null];
     stateHash2 = [null];
     stateSplit = [null];
+    animationCounter = 1;
 
 
     // clear process log
@@ -1446,17 +1456,12 @@ userInsert.addEventListener("keypress", (e) => {
     insertValue();
   }
 });
-var submitInsertBtn = document.createElement("BUTTON");
-submitInsertBtn.setAttribute("type", "button");
-submitInsertBtn.setAttribute("onclick", "insertValue()")
-submitInsertBtn.innerHTML = "Submit";
-submitInsertBtn.setAttribute("id", "submitInsertBtn");
+
 var insertText = document.createElement("p");
 insertText.setAttribute("class", "btnText");
 insertText.innerHTML = "Add another key: ";
 document.getElementById("divInsert").appendChild(insertText);
 document.getElementById("divInsert").appendChild(userInsert);
-document.getElementById("divInsert").appendChild(submitInsertBtn);
 
 var newInsert;
 function insertValue() {
@@ -1555,17 +1560,11 @@ userFind.addEventListener("keypress", (e) => {
     findValue();
   }
 });
-var submitFindBtn = document.createElement("BUTTON");
-submitFindBtn.setAttribute("type", "button");
-submitFindBtn.setAttribute("onclick", "findValue()")
-submitFindBtn.innerHTML = "Submit";
-submitFindBtn.setAttribute("id", "submitFindBtn");
 var findText = document.createElement("p");
 findText.setAttribute("class", "btnText");
 findText.innerHTML = "Find a key: ";
 document.getElementById("divFind").appendChild(findText);
 document.getElementById("divFind").appendChild(userFind);
-document.getElementById("divFind").appendChild(submitFindBtn);
 
 function findValue() {
   let find = parseFloat(userFind.value);
@@ -1761,13 +1760,20 @@ function find2Clicked(find, bucketKey) {
 //@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 // play all
 // add play all BUTTON
+var playAllClicked = false;
+
 let playAllBtn = svg.append("text")
     .text("Play All")
     .attr("id", "playAllBtn")
     .attr("class", "textBtn")
     .attr("x", 10)
     .attr("y", 30)
-    .on("click", playAll);
+    .on("click", function () {
+      if (!playAllClicked) {
+        playAllClicked = true;
+        playAll();
+      }
+    });
 
 let playAllBtnBbox = svg.insert("rect", "#playAllBtn")
     .attr("x", function () {
@@ -1786,8 +1792,9 @@ let playAllBtnBbox = svg.insert("rect", "#playAllBtn")
     .attr("fill", "#fce5d3")
     .attr("stroke", "orange");
 
-var animationCounter = 1;
-var delay;
+
+var delay = 0;
+
 function playAll() {
   setTimeout(function () {
     if (animationCounter < insertLog.length) {
@@ -1802,6 +1809,10 @@ function playAll() {
       }
       animationCounter++;
       playAll();
+    } else { // reaches end
+      animationCounter = 1;
+      delay = 0;
+      playAllClicked = false;
     }
   }, delay);
 }
