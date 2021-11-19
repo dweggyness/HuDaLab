@@ -19,10 +19,10 @@ const btnPaddingY = 1.5;
 // add container for BUTTONS
 var btnDiv = document.createElement("div");
 btnDiv.setAttribute("id", "button-container");
-document.getElementById("container-1").appendChild(btnDiv);
+document.getElementById("eht-container").appendChild(btnDiv);
 
 
-var svg = d3.select("#container-1")
+var svg = d3.select("#eht-container")
     .append("svg")
       .attr("width", 600 + 'px')
       // .attr("height", 600 + 'px')
@@ -328,18 +328,11 @@ userNum.addEventListener("keypress", (e) => {
     iniEHT();
   }
 });
-let submitNumBtn = document.createElement("BUTTON");
-submitNumBtn.setAttribute("type", "button");
-submitNumBtn.setAttribute("onclick", "iniEHT()")
-submitNumBtn.innerHTML = "Submit";
-document.getElementById("divIniNum").appendChild(submitNumBtn);
-submitNumBtn.setAttribute("id", "submitNumBtn");
 var numText = document.createElement("p");
 numText.setAttribute("class", "btnText");
 numText.innerHTML = "# of keys to insert:";
 document.getElementById("divIniNum").appendChild(numText);
 document.getElementById("divIniNum").appendChild(userNum);
-document.getElementById("divIniNum").appendChild(submitNumBtn);
 
 function iniEHT() {
   newIniNum = parseFloat(userNum.value);
@@ -813,7 +806,7 @@ function drawKeyArrow(eht) {
   let exitingKeys = keyGroup.exit();
   exitingKeys.remove();
 
-  keys.transition().duration(500).attr("transform", getKeyLocation);
+  keys.transition().attr("transform", getKeyLocation);
   // because keytext is not directly bounded to data,
   // we use brute force to change the text
   svg.selectAll(".keyText").text(function(d,i) {
@@ -867,7 +860,7 @@ function drawKeyArrow(eht) {
   let exitingArrows = arrowGroup.exit();
   exitingArrows.remove();
 
-  arrowGroup.transition().duration(500).attr("d", link);
+  arrowGroup.transition().attr("d", link);
 
   // local depth digit
   let localDepthGroup1 = bucketPart.selectAll(".localGroup1").data(uniqueBuckets);
@@ -1018,17 +1011,11 @@ userInsert.addEventListener("keypress", (e) => {
     insertValue();
   }
 });
-var submitInsertBtn = document.createElement("BUTTON");
-submitInsertBtn.setAttribute("type", "button");
-submitInsertBtn.setAttribute("onclick", "insertValue()")
-submitInsertBtn.innerHTML = "Submit";
-submitInsertBtn.setAttribute("id", "submitInsertBtn");
 var insertText = document.createElement("p");
 insertText.setAttribute("class", "btnText");
 insertText.innerHTML = "Add another key: ";
 document.getElementById("divInsert").appendChild(insertText);
 document.getElementById("divInsert").appendChild(userInsert);
-document.getElementById("divInsert").appendChild(submitInsertBtn);
 
 
 
@@ -1167,27 +1154,29 @@ function showHashed(idx) {
         return findLogBtnY(idx);
       })
       .on("click", function () {
-        delay = 0;
-        thisFullAnimate = true;
+        if (!playAllClicked) {
+          delay = 0;
+          thisFullAnimate = true;
 
-        if (stateHash[idx] !== null) {
-          stateHashChange(idx, false);
-          stateLocateChange(idx, false);
-        } else {
-          stateHashChange(idx-1, false);
-          stateLocateChange(idx-1, false);
-          stateFullInsertChange(idx-1, false);
-          stateExpandChange(idx-1, false);
-          stateInsertChange(idx-1, false);
-        }
-        if (stateExpand[idx] !== null) {
-          if (stateFullInsert[idx] !== null) {
-            stateFullInsertChange(idx, false);
+          if (stateHash[idx] !== null) {
+            stateHashChange(idx, false);
+            stateLocateChange(idx, false);
+          } else {
+            stateHashChange(idx-1, false);
+            stateLocateChange(idx-1, false);
+            stateFullInsertChange(idx-1, false);
+            stateExpandChange(idx-1, false);
+            stateInsertChange(idx-1, false);
           }
-          stateExpandChange(idx, false);
+          if (stateExpand[idx] !== null) {
+            if (stateFullInsert[idx] !== null) {
+              stateFullInsertChange(idx, false);
+            }
+            stateExpandChange(idx, false);
+          }
+          stateInsertChange(idx, false);
+          insertClicked(idx);
         }
-        stateInsertChange(idx, false);
-        insertClicked(idx);
       });
 
   processLog
@@ -1216,8 +1205,10 @@ function showHash(idx) {
         return "hashBtn" + idx
       })
       .on("click", function () {
-        delay = 0;
-        hashClicked(idx);
+        if (!playAllClicked) {
+          delay = 0;
+          hashClicked(idx);
+        }
       });
 
   processLog
@@ -1255,8 +1246,6 @@ function hashClicked(idx) {
       }
 
     }
-  } else {
-    delayStack.push(300);
   }
 
   // if the first insert
@@ -1327,7 +1316,7 @@ function hashClicked(idx) {
         })
         .attr("id", function () { return "hash_emph_" + insertLog[idx]["ins"] })
         .attr("class", "hashed")
-        .transition().duration(500)
+        .transition()
           .attr("fill", "#f00");
 
 
@@ -1340,11 +1329,11 @@ function hashClicked(idx) {
     drawViz(ehtRecord[idx-1]);
 
     svg.select("#hash_emph_" + insertLog[idx]["ins"]).attr("fill", "#000")
-      .transition().duration(500).attr("fill", "#f00");
+      .transition().attr("fill", "#f00");
     // globalDepth.attr("fill", "#000")
     //   .transition().duration(500).attr("fill", "#ff0");
     globalDepthDigit.attr("fill", "#000")
-      .transition().duration(500).attr("fill", "#f00");
+      .transition().attr("fill", "#f00");
 
 
 
@@ -1405,8 +1394,10 @@ function showLocate(idx) {
         return "locateBtn" + idx
       })
       .on("click", function () {
-        delay = 0;
-        locateClicked(idx);
+        if (!playAllClicked) {
+          delay = 0;
+          locateClicked(idx);
+        }
       });
 
   processLog
@@ -1450,7 +1441,7 @@ function locateClicked(idx) {
 
     // emphasis
     svg.select("#key"+insertLog[idx]["convkey"]).attr("fill", "#000")
-      .transition().duration(500).attr("fill", "#f00");
+      .transition().attr("fill", "#f00");
     //animated line
     let arrow = svg.select("#arrow"+insertLog[idx]["convkey"]);
     arrow.each(function() {
@@ -1501,8 +1492,10 @@ function showFullInsert(idx) {
         return "fullInsertBtn" + idx
       })
       .on("click", function () {
-        delay = 0;
-        fullInsertClicked(idx);
+        if (!playAllClicked) {
+          delay = 0;
+          fullInsertClicked(idx);
+        }
       });
 
   processLog
@@ -1648,8 +1641,10 @@ function showExpand(idx) {
         return "expandBtn" + idx
       })
       .on("click", function () {
-        delay = 0;
-        expandClicked(idx);
+        if (!playAllClicked) {
+          delay = 0;
+          expandClicked(idx);
+        }
       });
 
   processLog
@@ -1859,8 +1854,10 @@ function showSplit(idx) {
         return "splitBtn" + idx
       })
       .on("click", function () {
-        delay = 0;
-        splitClicked(idx);
+        if (!playAllClicked) {
+          delay = 0;
+          splitClicked(idx);
+        }
       });
 
   processLog
@@ -1906,6 +1903,10 @@ function splitClicked(idx) {
       }
       stateInsertChange(i, false);
     }
+    // change playAllClicked if it is the last
+    if (stateInsert.slice(-1)[0]) {
+      playAllClicked = false;
+    }
   }, delayStack.shift());
 
 }
@@ -1924,8 +1925,10 @@ function showInsert(idx) {
         return "insertBtn"+idx
       })
       .on("click", function () {
-        delay = 0;
-        insertClicked(idx);
+        if (!playAllClicked) {
+          delay = 0;
+          insertClicked(idx);
+        }
       });
 
   processLog
@@ -1982,6 +1985,10 @@ function insertClicked(idx) {
       }
       stateInsertChange(i, false);
     }
+    // change playAllClicked if it is the last
+    if (stateInsert.slice(-1)[0]) {
+      playAllClicked = false;
+    }
   }, delayStack.shift());
 
 }
@@ -2006,17 +2013,11 @@ userFind.addEventListener("keypress", (e) => {
     findValue();
   }
 });
-var submitFindBtn = document.createElement("BUTTON");
-submitFindBtn.setAttribute("type", "button");
-submitFindBtn.setAttribute("onclick", "findValue()")
-submitFindBtn.innerHTML = "Submit";
-submitFindBtn.setAttribute("id", "submitFindBtn");
 var findText = document.createElement("p");
 findText.setAttribute("class", "btnText");
 findText.innerHTML = "Find a key: ";
 document.getElementById("divFind").appendChild(findText);
 document.getElementById("divFind").appendChild(userFind);
-document.getElementById("divFind").appendChild(submitFindBtn);
 
 
 function findValue() {
@@ -2146,7 +2147,7 @@ function findClicked(find) {
   // globalDepth.attr("fill", "#000")
   //   .transition().duration(500).attr("fill", "#ff0");
   globalDepthDigit.attr("fill", "#000")
-    .transition().duration(500).attr("fill", "#f00");
+    .transition().attr("fill", "#f00");
 
   //animated line
   let arrow = svg.select("#arrow"+convKey);
@@ -2183,6 +2184,7 @@ function findClicked(find) {
 
 // Interactive Features 4 ===============================================
 // play all
+var playAllClicked = false;
 // add play all BUTTON
 let playAllBtn = svg.append("text")
     .text("Play All")
@@ -2212,7 +2214,9 @@ let playAllBtnBbox = svg.insert("rect", "text")
 function playAll() {
   if (animationLock) {
     alert("Current Extendible Hashing Table is EMPTY!")
-  } else {
+  } else if (!playAllClicked) {
+    delay = 0;
+    playAllClicked = true;
     fullAnimate = true;
     thisFullAnimate = true;
     // set all active state to false;
@@ -2228,15 +2232,12 @@ function playAll() {
         stateExpandChange(i, false);
       }
       stateInsertChange(i, false);
-      console.log(stateHash);
     }
     if (stateExpand.slice(-1)[0] === null) {
       insertClicked(stateHash.length-1);
     } else {
       splitClicked(stateHash.length-1);
     }
-
     fullAnimate = false;
   }
-
 }
