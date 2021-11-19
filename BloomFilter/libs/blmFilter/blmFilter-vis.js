@@ -1025,6 +1025,7 @@ function findValue() {
     d3.selectAll(".finding").remove();
 
     let findGroup = findPart.append("g")
+        .attr("class", "finding")
         .attr("id", "findGroup")
         .attr("transform", "translate(400,200)")
           .on("click", function () {
@@ -1231,19 +1232,22 @@ function drawFind(find) {
   }
   findPart.append("text")
     .text(message1)
-    .attr("class", "findingPath")
-    .attr("x", 400)
-    .attr("y", 250);
+    .attr("class", "finding findingPath")
+    .attr("x", 380)
+    .attr("y", 250)
+    .attr("font-size", "1.1em");
   findPart.append("text")
     .text(message2)
-    .attr("class", "findingPath")
-    .attr("x", 400)
-    .attr("y", 270);
+    .attr("class", "finding findingPath")
+    .attr("x", 380)
+    .attr("y", 275)
+    .attr("font-size", "1.1em");
   findPart.append("text")
       .text(message3)
-      .attr("class", "findingPath")
-      .attr("x", 400)
-      .attr("y", 290);
+      .attr("class", "finding findingPath")
+      .attr("x", 380)
+      .attr("y", 300)
+      .attr("font-size", "1.1em");
 
 
 }
