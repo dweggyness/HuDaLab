@@ -589,6 +589,25 @@ function insertValue() {
     bftRecord.push(tempBFT);
     drawViz(BFT);
     drawText(BFT);
+
+    let t = document.getElementById("textGroup"+(currIdx-1).toString())
+
+    textClicked(t, strToInsert);
+
+    // because new arrows were added at the same time, js could not access the newly added arrows immediatelly, so we add a short delay.
+    setTimeout(function () {
+      // show arrow animations
+      for (var i = 1; i < 4; i++) {
+        let arrow = svg.select("#arrow"+i+strToInsert);
+        arrow.each(function() {
+          let tempArrow = arrowPart
+            .append("path")
+              .attr("class", "arrowAnimated")
+              .attr("d", this.getAttribute('d'));
+        })
+      }
+    }, 200);
+
   }
 }
 
@@ -884,7 +903,6 @@ function drawText(bft) {
 function textClicked(t,d) {
   console.log("clicked");
   if (currIdx >= parseInt(t.getAttribute("id").substring(9))+1) {
-
     // remove animated line
     d3.selectAll(".arrowAnimated").remove();
     // show hash results
@@ -1055,6 +1073,9 @@ function findValue() {
         })
         .attr("stroke", "rebeccapurple")
         .attr("fill", "#f1ebff");
+
+    // just drawFind, so user don;t need to click on it to show
+    drawFind(find);
   }
 }
 
