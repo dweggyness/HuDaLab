@@ -222,7 +222,7 @@
   //@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
   // main Viz helper functions
   function getDataY(d, i) {
-    return y = i*20
+    return y = i*20 -20
   }
   function getTextLocationY(d, i) {
     return 200 + (i-Math.floor((BFT.arrayOfElems.length)/2))*28;
