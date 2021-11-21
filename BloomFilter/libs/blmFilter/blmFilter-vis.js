@@ -288,6 +288,14 @@ let textPart = vizSection.append("g").attr("class", "textPart");
 let hashPart = vizSection.append("g").attr("class", "hashPart");
 let findPart = vizSection.append("g").attr("class", "findPart");
 
+// double click instructions
+let instruction = vizSection
+    .append("text")
+      .text("Double click on the inserted values to revert to that stage.")
+      .attr("x", -25)
+      .attr("y", -50)
+      ;
+
 // display three hash functions;
 let hash0Text = vizSection
     .append("text")
@@ -703,6 +711,13 @@ function drawArrayBG(bft) {
         .attr("height", 20)
         .attr("stroke", "#8c8c8c")
         .attr("fill", "#ececec");
+
+  arrayBG
+      .append("text")
+        .text((d,i) => i)
+        .attr("text-anchor", "middle")
+        .attr("x", 285)
+        .attr("y", (d,i) => getDataY(d,i) + 16);
 }
 function drawArray(bft) {
   let data = bft.array;
@@ -1074,7 +1089,7 @@ function findValue() {
         .attr("stroke", "rebeccapurple")
         .attr("fill", "#f1ebff");
 
-    // just drawFind, so user don;t need to click on it to show
+    // just drawFind, so user don't need to click on it to show
     drawFind(find);
   }
 }
@@ -1100,7 +1115,7 @@ function drawFind(find) {
   d3.selectAll(".findingPath").remove();
   // link 1
   let link1 = d3.linkHorizontal();
-  let link1Target = [275, getDataY(null, hash1)+10];
+  let link1Target = [300, getDataY(null, hash1)+10];
   let link1Data = {source:[400-2, 200-5], target: link1Target};
   findPart
     .append("path")
@@ -1110,7 +1125,7 @@ function drawFind(find) {
 
   // link 2
   let link2 = d3.linkHorizontal();
-  let link2Target = [275, getDataY(null, hash2)+10];
+  let link2Target = [300, getDataY(null, hash2)+10];
   let link2Data = {source:[400-2, 200-5], target: link2Target};
   findPart
     .append("path")
@@ -1120,7 +1135,7 @@ function drawFind(find) {
 
   // link 3
   let link3 = d3.linkHorizontal();
-  let link3Target = [275, getDataY(null, hash3)+10];
+  let link3Target = [300, getDataY(null, hash3)+10];
   let link3Data = {source:[400-2, 200-5], target: link3Target};
   findPart
     .append("path")
