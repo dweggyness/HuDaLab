@@ -65,8 +65,15 @@
     }
 
     // hash 4
+    // linear adding, with a bit shift
     hash4(str) {
       let hash = 0;
+      for (var i = 0; i < str.length; i++) {
+          const curChar = str[i];
+          const curCharASCII = curChar.charCodeAt(0);
+          hash = ((hash<<3)) + curCharASCII;
+          hash = hash % this.arrSize;
+      }
       return hash;
     }
     // hash 5
@@ -90,6 +97,8 @@
         console.log(`Hash2 - ${hash2}`);
         console.log(`Hash3 - ${hash3}`);
       }
+
+      console.log(hash1, hash2, hash3, hash4);
 
       return [ hash1, hash2, hash3, hash4, hash5 ]
     }
