@@ -123,9 +123,10 @@ class BloomFilter {
 // https://en.wikipedia.org/wiki/Bloom_filter
 // https://gist.github.com/brandt/8f9ab3ceae37562a2841
 // Given number of elems to insert into bloom filter, returns the optimal bloom filter size
-// for a false positive rate of 1%
+// for a given target false positive rate
 function getOptimalBloomFilterSize(numberOfElems) {
-  const numerator = numberOfElems * (Math.log(0.01).abs);
+  const TARGET_FALSE_POSITIVE_RATE = 0.01;
+  const numerator = numberOfElems * Math.abs(Math.log(TARGET_FALSE_POSITIVE_RATE));
   const denominator = Math.log(2) ** 2
   const result = Math.floor(numerator / denominator);
   return result;
@@ -137,7 +138,7 @@ function getOptimalBloomFilterSize(numberOfElems) {
 // number of hash functions
 function getOptimalNumberOfHashFunctions(arrayBitSize, numberOfElems) {
   let result = (arrayBitSize / numberOfElems) * Math.log(2);
-  let result = Math.floor(result); 
+  result = Math.floor(result); 
   return result;
 }
 

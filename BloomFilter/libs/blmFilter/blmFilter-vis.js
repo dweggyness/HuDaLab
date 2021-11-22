@@ -196,6 +196,28 @@
 
   }
 
+  // https://en.wikipedia.org/wiki/Bloom_filter
+  // https://gist.github.com/brandt/8f9ab3ceae37562a2841
+  // Given number of elems to insert into bloom filter, returns the optimal bloom filter size
+  // for a false positive rate of 1%
+  function getOptimalBloomFilterSize(numberOfElems) {
+    const TARGET_FALSE_POSITIVE_RATE = 0.20;
+    const numerator = numberOfElems * Math.abs(Math.log(TARGET_FALSE_POSITIVE_RATE));
+    const denominator = Math.log(2) ** 2
+    const result = Math.round(numerator / denominator);
+    return result;
+  }
+
+  // https://en.wikipedia.org/wiki/Bloom_filter
+  // https://gist.github.com/brandt/8f9ab3ceae37562a2841
+  // Given number of elems to insert into bloom filter and bit array size, returns optimal
+  // number of hash functions
+  function getOptimalNumberOfHashFunctions(arrayBitSize, numberOfElems) {
+    let result = (arrayBitSize / numberOfElems) * Math.log(2);
+    result = Math.round(result); 
+    return result;
+  }
+
   // https://stackoverflow.com/questions/2450954/how-to-randomize-shuffle-a-javascript-array
   // a function to shuffle input array, based on this stackoverflow answer
   // Fisher-Yates (aka Knuth) Shuffle.
@@ -546,6 +568,7 @@
 
   //@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
   // User Initiate Bloom Filter Size
+
   // create a seperate div for each interactive part
   let userSizeDiv = document.createElement("div");
   userSizeDiv.setAttribute("class", "btndiv");
@@ -554,12 +577,19 @@
 
   let userSize = document.createElement("INPUT");
   userSize.setAttribute("type", "number");
-  userSize.setAttribute("placeholder", "20");
+  userSize.setAttribute("placeholder", 20);
   userSize.setAttribute("id", "userSize");
-  userSize.addEventListener("keypress", (e) => {
+  userSize.addEventListener("keyup", (e) => {
     if (e.key == "Enter") {
       e.preventDefault();
       changeSize();
+    } else {
+      // get values, and backup values if the field is currently empty
+      // value of the field, otherwise, current array size
+      const bitArrSize = parseFloat(userSize.value) || arraySize;
+      // value of the field, otherwise, current num of elems in BFT, otherwise, 5 elems.
+      const numElems = parseFloat(userNum.value) || BFT.arrayOfElems.length || 5;
+      userHash.setAttribute("placeholder", getOptimalNumberOfHashFunctions(bitArrSize, numElems));
     }
   });
 
@@ -582,7 +612,7 @@
   userHash.setAttribute("type", "number");
   userHash.setAttribute("placeholder", "3");
   userHash.setAttribute("id", "userSize");
-  userHash.addEventListener("keypress", (e) => {
+  userHash.addEventListener("keyup", (e) => {
     if (e.key == "Enter") {
       e.preventDefault();
       changeHash();
@@ -608,6 +638,7 @@
       userSize.setAttribute("placeholder", newSize);
       drawViz(BFT);
       drawText(BFT);
+
     }
   }
   function changeHash() {
@@ -639,10 +670,20 @@
   userNum.setAttribute("type", "number");
   // userNum.setAttribute("placeholder", "Positive integer");
   userNum.setAttribute("id", "userNum");
-  userNum.addEventListener("keypress", (e) => {
+  userNum.addEventListener("keyup", (e) => {
     if (e.key == "Enter") {
       e.preventDefault();
       iniBFT();
+    } else {
+      // get values, and backup values if the field is currently empty
+      // value of the field, otherwise, current array size
+      const bitArrSize = parseFloat(userSize.value) || arraySize;
+      // value of the field, otherwise, current num of elems in BFT, otherwise, 5 elems.
+      const numElems = parseFloat(userNum.value) || BFT.arrayOfElems.length || 5;
+    
+      const optimalBloomFilterSize = getOptimalBloomFilterSize(numElems)
+      userSize.setAttribute("placeholder", optimalBloomFilterSize);
+      userHash.setAttribute("placeholder", getOptimalNumberOfHashFunctions(bitArrSize, numElems));
     }
   });
 
@@ -704,7 +745,7 @@
   // userInsert.setAttribute("placeholder", "Any String");
   userInsert.setAttribute("id", "bft-userInsert");
   // upon pressing enter
-  userInsert.addEventListener("keypress", (e) => {
+  userInsert.addEventListener("keyup", (e) => {
     if (e.key == "Enter") {
       e.preventDefault();
       insertValue();
@@ -1182,7 +1223,7 @@
   userFind.setAttribute("type", "text");
   // userFind.setAttribute("placeholder", "Any String");
   userFind.setAttribute("id", "bft-userInsert");
-  userFind.addEventListener("keypress", (e) => {
+  userFind.addEventListener("keyup", (e) => {
     if (e.key == "Enter") {
       e.preventDefault();
       findValue();
