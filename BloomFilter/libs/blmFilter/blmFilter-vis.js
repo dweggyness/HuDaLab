@@ -583,7 +583,7 @@
     if (e.key == "Enter") {
       e.preventDefault();
       changeSize();
-    } else {
+    } else { // change value, so we should change the suggested values for the other parameters
       // get values, and backup values if the field is currently empty
       // value of the field, otherwise, current array size
       const bitArrSize = parseFloat(userSize.value) || arraySize;
@@ -674,14 +674,14 @@
     if (e.key == "Enter") {
       e.preventDefault();
       iniBFT();
-    } else {
+    } else { // change value, so we should change the suggested values for the other parameters
       // get values, and backup values if the field is currently empty
-      // value of the field, otherwise, current array size
-      const bitArrSize = parseFloat(userSize.value) || arraySize;
       // value of the field, otherwise, current num of elems in BFT, otherwise, 5 elems.
       const numElems = parseFloat(userNum.value) || BFT.arrayOfElems.length || 5;
-    
       const optimalBloomFilterSize = getOptimalBloomFilterSize(numElems)
+      // value of the field, otherwise, optimal array size
+      const bitArrSize = parseFloat(userSize.value) || optimalBloomFilterSize;
+    
       userSize.setAttribute("placeholder", optimalBloomFilterSize);
       userHash.setAttribute("placeholder", getOptimalNumberOfHashFunctions(bitArrSize, numElems));
     }
