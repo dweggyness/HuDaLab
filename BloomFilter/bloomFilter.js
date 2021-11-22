@@ -120,6 +120,27 @@ class BloomFilter {
 
 }
 
+// https://en.wikipedia.org/wiki/Bloom_filter
+// https://gist.github.com/brandt/8f9ab3ceae37562a2841
+// Given number of elems to insert into bloom filter, returns the optimal bloom filter size
+// for a false positive rate of 1%
+function getOptimalBloomFilterSize(numberOfElems) {
+  const numerator = numberOfElems * (Math.log(0.01).abs);
+  const denominator = Math.log(2) ** 2
+  const result = Math.floor(numerator / denominator);
+  return result;
+}
+
+// https://en.wikipedia.org/wiki/Bloom_filter
+// https://gist.github.com/brandt/8f9ab3ceae37562a2841
+// Given number of elems to insert into bloom filter and bit array size, returns optimal
+// number of hash functions
+function getOptimalNumberOfHashFunctions(arrayBitSize, numberOfElems) {
+  let result = (arrayBitSize / numberOfElems) * Math.log(2);
+  let result = Math.floor(result); 
+  return result;
+}
+
 // https://stackoverflow.com/questions/2450954/how-to-randomize-shuffle-a-javascript-array
 // a function to shuffle input array, based on this stackoverflow answer
 // Fisher-Yates (aka Knuth) Shuffle.
