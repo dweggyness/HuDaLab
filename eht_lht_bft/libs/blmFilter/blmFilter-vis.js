@@ -1,4 +1,4 @@
-// function BFT_vis() {
+function BFT_vis() {
   /** Implementation of Bloom Filters in JS */
   // Based on https://www.geeksforgeeks.org/bloom-filters-introduction-and-python-implementation/
 
@@ -65,13 +65,15 @@
     }
 
     // hash 4
+    // linear adding, with a bit shift
     hash4(str) {
       let hash = 0;
-      return hash;
-    }
-    // hash 5
-    hash5(str) {
-      let hash = 1;
+      for (var i = 0; i < str.length; i++) {
+          const curChar = str[i];
+          const curCharASCII = curChar.charCodeAt(0);
+          hash = ((hash<<3)) + curCharASCII;
+          hash = hash % this.arrSize;
+      }
       return hash;
     }
 
@@ -81,8 +83,6 @@
       const hash2 = this.hash2(str);
       const hash3 = this.hash3(str);
       const hash4 = this.hash4(str);
-      const hash5 = this.hash5(str);
-
 
       if (DEBUG_FLAG) {
         console.log(`Hashing "${str}"`);
@@ -91,7 +91,7 @@
         console.log(`Hash3 - ${hash3}`);
       }
 
-      return [ hash1, hash2, hash3, hash4, hash5 ]
+      return [ hash1, hash2, hash3, hash4 ]
     }
 
     // hashes the string, and sets the bits at the hash indexes to 1.
@@ -196,6 +196,28 @@
 
   }
 
+  // https://en.wikipedia.org/wiki/Bloom_filter
+  // https://gist.github.com/brandt/8f9ab3ceae37562a2841
+  // Given number of elems to insert into bloom filter, returns the optimal bloom filter size
+  // for a false positive rate of 1%
+  function getOptimalBloomFilterSize(numberOfElems) {
+    const TARGET_FALSE_POSITIVE_RATE = 0.20;
+    const numerator = numberOfElems * Math.abs(Math.log(TARGET_FALSE_POSITIVE_RATE));
+    const denominator = Math.log(2) ** 2
+    const result = Math.round(numerator / denominator);
+    return result;
+  }
+
+  // https://en.wikipedia.org/wiki/Bloom_filter
+  // https://gist.github.com/brandt/8f9ab3ceae37562a2841
+  // Given number of elems to insert into bloom filter and bit array size, returns optimal
+  // number of hash functions
+  function getOptimalNumberOfHashFunctions(arrayBitSize, numberOfElems) {
+    let result = (arrayBitSize / numberOfElems) * Math.log(2);
+    result = Math.round(result);
+    return result;
+  }
+
   // https://stackoverflow.com/questions/2450954/how-to-randomize-shuffle-a-javascript-array
   // a function to shuffle input array, based on this stackoverflow answer
   // Fisher-Yates (aka Knuth) Shuffle.
@@ -225,7 +247,7 @@
     return y = i*20 -20
   }
   function getTextLocationY(d, i) {
-    return 200 + (i-Math.floor((BFT.arrayOfElems.length)/2))*28;
+    return Math.max(0, (BFT.arrSize-10)*10) + 100 + (i-Math.floor((BFT.arrayOfElems.length)/2))*28;
   }
   function getTextLocation(d, i) {
     let x = 100;
@@ -252,9 +274,6 @@
   function findHash4BBox() {
     return svg.select("#hash4Res").node().getBBox();
   }
-  function findHash5BBox() {
-    return svg.select("#hash5Res").node().getBBox();
-  }
   function findFindBBox() {
     return svg.select("#findText").node().getBBox();
   }
@@ -277,12 +296,24 @@
   const btnPaddingX = 1.5;
   const btnPaddingY = 1.5;
 
-  // add container for BUTTONS
+  // add container for param BUTTONS
   var btnDiv2 = document.createElement("div");
   btnDiv2.setAttribute("id", "bft-button-container-2");
   btnDiv2.setAttribute("class", "button-container");
   document.getElementById("bft-container").appendChild(btnDiv2);
 
+  // add container for hint
+  var recomParamDiv = document.createElement("div");
+  recomParamDiv.setAttribute("id", "bft-recom-container");
+  document.getElementById("bft-container").appendChild(recomParamDiv);
+  let recomText = document.createElement("p");
+  recomText.innerHTML = '';
+  recomText.setAttribute("class", "btnText");
+  recomParamDiv.setAttribute("style", "padding-left:5px;");
+  recomText.setAttribute("style", "margin:0;");
+  document.getElementById("bft-recom-container").appendChild(recomText);
+
+  // add container for insert/find BUTTONS
   var btnDiv1 = document.createElement("div");
   btnDiv1.setAttribute("id", "bft-button-container-1");
   btnDiv1.setAttribute("class", "button-container");
@@ -297,7 +328,7 @@
         // .attr("preserveAspectRatio","none")
         // .attr("width", width + margin.left + margin.right)
         // .attr("height", height + margin.top + margin.bottom)
-        .attr("id", "canvas")
+        .attr("id", "bft-canvas")
         .append("g")
           .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
@@ -315,6 +346,20 @@
   let hashPart = vizSection.append("g").attr("class", "hashPart");
   let findArrowPart = vizSection.append("g").attr("class", "findArrowPart");
   let findPart = vizSection.append("g").attr("class", "findPart");
+
+  // section titles
+  svg.append("text")
+      .text("State of bloom filter")
+      .attr("x", 200)
+      .attr("y", 10)
+      .attr("class", "section-title")
+      ;
+  svg.append("text")
+      .text("Hash functions")
+      .attr("x", 600)
+      .attr("y", 10)
+      .attr("class", "section-title")
+      ;
 
   // display three hash functions;
   let hash0Text = vizSection
@@ -352,14 +397,6 @@
         .attr("y", 100)
         .attr("display", "none")
         ;
-  let hash5Text = vizSection
-      .append("text")
-        .text("Hash function 5 result:")
-        .attr("id", "hashText5")
-        .attr("x", 500)
-        .attr("y", 130)
-        .attr("display", "none")
-        ;
 
   let hashStr = vizSection
       .append("text")
@@ -395,14 +432,6 @@
         .text("Res4")
         .attr("x", 675)
         .attr("y", 100)
-        .attr("display", "none")
-        ;
-  let hash5Result = vizSection
-      .append("text")
-        .attr("id", "hash5Res")
-        .text("Res5")
-        .attr("x", 675)
-        .attr("y", 130)
         .attr("display", "none")
         ;
 
@@ -504,26 +533,6 @@
       .attr("display", "none")
       ;
 
-  let hash5BBox = vizSection
-    .insert("rect", "text")
-      .attr("id", "hash5ResBBox")
-      .attr("class", "bBox")
-      .attr("x", function () {
-        return findHash5BBox().x - textBlockPaddingX;
-      })
-      .attr("y", function () {
-        return findHash5BBox().y - textBlockPaddingY;
-      })
-      .attr("width", function () {
-        return findHash5BBox().width + 2*textBlockPaddingX;
-      })
-      .attr("height", function () {
-        return findHash5BBox().height + 2*textBlockPaddingY;
-      })
-      .attr("fill", "#e0faec")
-      .attr("stroke", "#3fbc77")
-      .attr("display", "none")
-      ;
 
 
 
@@ -546,6 +555,7 @@
 
   //@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
   // User Initiate Bloom Filter Size
+
   // create a seperate div for each interactive part
   let userSizeDiv = document.createElement("div");
   userSizeDiv.setAttribute("class", "btndiv");
@@ -554,12 +564,20 @@
 
   let userSize = document.createElement("INPUT");
   userSize.setAttribute("type", "number");
-  userSize.setAttribute("placeholder", "20");
+  userSize.setAttribute("placeholder", 20);
   userSize.setAttribute("id", "userSize");
-  userSize.addEventListener("keypress", (e) => {
+  userSize.addEventListener("keyup", (e) => {
     if (e.key == "Enter") {
       e.preventDefault();
       changeSize();
+    } else { // change value, so we should change the suggested values for the other parameters
+      // get values, and backup values if the field is currently empty
+      // value of the field, otherwise, current array size
+      const bitArrSize = parseFloat(userSize.value) || arraySize;
+      // value of the field, otherwise, current num of elems in BFT, otherwise, 5 elems.
+      const numElems = parseFloat(userNum.value) || BFT.arrayOfElems.length || 5;
+
+      recomText.innerHTML = "With current " + numElems + " elements and filter size " + bitArrSize + ", the optimal # of hash functions is " + getOptimalNumberOfHashFunctions(bitArrSize, numElems) +".";
     }
   });
 
@@ -582,7 +600,7 @@
   userHash.setAttribute("type", "number");
   userHash.setAttribute("placeholder", "3");
   userHash.setAttribute("id", "userSize");
-  userHash.addEventListener("keypress", (e) => {
+  userHash.addEventListener("keyup", (e) => {
     if (e.key == "Enter") {
       e.preventDefault();
       changeHash();
@@ -591,7 +609,7 @@
 
   var hashText = document.createElement("p");
   hashText.setAttribute("class", "btnText");
-  hashText.innerHTML = "Number of hash functions:";
+  hashText.innerHTML = "# of hash functions:";
   document.getElementById("bft-divIniHash").appendChild(hashText);
   document.getElementById("bft-divIniHash").appendChild(userHash);
 
@@ -599,23 +617,29 @@
     newSize = parseFloat(userSize.value);
     userSize.value = '';
     // check if num is valid
-    if (newSize < 2 || newSize % 1 !== 0 || newSize > 26){
-      alert("Please enter a valid size! \n A valid size is a Positive Integer belonging to [2, 25].")
+    if (newSize < 2 || newSize % 1 !== 0 || newSize > 50){
+      alert("Please enter a valid size! \n A valid size is a Positive Integer belonging to [2, 50].")
       newSize = null;
     } else {
+      // change canvas size
+      desHeight =  600 + Math.max(0, newSize-18)*28;
+      desViewBox = "0 0 900 " + desHeight;
+      document.getElementById("bft-canvas").setAttribute("viewBox", desViewBox);
+
       arraySize = newSize;
       BFT.changeSize(newSize);
       userSize.setAttribute("placeholder", newSize);
       drawViz(BFT);
       drawText(BFT);
+
     }
   }
   function changeHash() {
     newHash = parseFloat(userHash.value);
     userHash.value = '';
     // check if num is valid
-    if (newHash < 1 || newHash % 1 !== 0 || newHash > 5){
-      alert("Please enter a valid number! \n A valid number is a Positive Integer belonging to [1, 5].")
+    if (newHash < 1 || newHash % 1 !== 0 || newHash > 4){
+      alert("Please enter a valid number! \n A valid number is a Positive Integer belonging to [1, 4].")
       newHash = null;
     } else {
       hashSize = newHash;
@@ -638,11 +662,22 @@
   let userNum = document.createElement("INPUT");
   userNum.setAttribute("type", "number");
   // userNum.setAttribute("placeholder", "Positive integer");
+  userNum.value = '5';
   userNum.setAttribute("id", "userNum");
-  userNum.addEventListener("keypress", (e) => {
+  userNum.addEventListener("keyup", (e) => {
     if (e.key == "Enter") {
       e.preventDefault();
       iniBFT();
+    } else { // change value, so we should change the suggested values for the other parameters
+      // get values, and backup values if the field is currently empty
+      // value of the field, otherwise, current num of elems in BFT, otherwise, 5 elems.
+      const numElems = parseFloat(userNum.value) || BFT.arrayOfElems.length || 5;
+      const optimalBloomFilterSize = getOptimalBloomFilterSize(numElems)
+      // value of the field, otherwise, optimal array size
+      const bitArrSize = parseFloat(userSize.value) || optimalBloomFilterSize;
+
+      recomText.innerHTML = "With current " + numElems + " elements, the optimal filter size is " + optimalBloomFilterSize + ", the optimal # of hash functions is " + getOptimalNumberOfHashFunctions(bitArrSize, numElems) +".";
+
     }
   });
 
@@ -691,6 +726,15 @@
     }
   }
 
+  iniBFT(BFT);
+  userNum.value = "5";
+  const numElems = parseFloat(userNum.value) || BFT.arrayOfElems.length || 5;
+  const optimalBloomFilterSize = getOptimalBloomFilterSize(numElems)
+  // value of the field, otherwise, optimal array size
+  const bitArrSize = parseFloat(userSize.value) || optimalBloomFilterSize;
+
+  recomText.innerHTML = "With current " + numElems + " elements, the optimal filter size is " + optimalBloomFilterSize + ", the optimal # of hash functions is " + getOptimalNumberOfHashFunctions(bitArrSize, numElems) +".";
+
   //@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
   // User Insert New Value
   // create a seperate div for each interactive part
@@ -704,7 +748,7 @@
   // userInsert.setAttribute("placeholder", "Any String");
   userInsert.setAttribute("id", "bft-userInsert");
   // upon pressing enter
-  userInsert.addEventListener("keypress", (e) => {
+  userInsert.addEventListener("keyup", (e) => {
     if (e.key == "Enter") {
       e.preventDefault();
       insertValue();
@@ -713,7 +757,7 @@
 
   var insertText = document.createElement("p");
   insertText.setAttribute("class", "btnText");
-  insertText.innerHTML = "Add another value: ";
+  insertText.innerHTML = "Add a value: ";
   document.getElementById("bft-divInsert").appendChild(insertText);
   document.getElementById("bft-divInsert").appendChild(userInsert);
 
@@ -732,10 +776,15 @@
     if (dup || newInsert.length > 20 || newInsert ==''){
       alert("Please enter a valid string! \n A valid number is a string having less than 20 letters that is not in the Bloom Filter.")
       newInsert = null;
-    } else if (BFT.arrayOfElems.length > 20) {
+    } else if (BFT.arrayOfElems.length > BFT.arrSize) {
       alert("Bloom Filter too full.")
       find = null;
     } else {
+
+      // change canvas size
+      desHeight =  600 + Math.max(0, BFT.arrayOfElems.length-12)*28;
+      desViewBox = "0 0 900 " + desHeight;
+      document.getElementById("bft-canvas").setAttribute("viewBox", desViewBox);
 
       // draw the last BFT
       drawViz(BFT);
@@ -755,6 +804,13 @@
 
       BFT.arrayOfElems.push(strToInsert);
       // equivalent code ends ==========================
+      // show optimal parameters
+      const numElems = BFT.arrayOfElems.length;
+      const optimalBloomFilterSize = getOptimalBloomFilterSize(numElems)
+      // value of the field, otherwise, optimal array size
+      const bitArrSize = optimalBloomFilterSize;
+
+      recomText.innerHTML = "With current " + numElems + " elements, the optimal filter size is " + optimalBloomFilterSize + ", the optimal # of hash functions is " + getOptimalNumberOfHashFunctions(bitArrSize, numElems) +".";
 
 
       drawViz(BFT);
@@ -790,7 +846,6 @@
     hash2Result.text("Res2");
     hash3Result.text("Res3");
     hash4Result.text("Res4");
-    hash5Result.text("Res5");
 
     // show or hide hash results
     for (var i = 1; i < 6; i++) {
@@ -866,19 +921,6 @@
         })
         .attr("height", function () {
           return findHash4BBox().height + 2*textBlockPaddingY;
-        });
-    hash5BBox
-        .attr("x", function () {
-          return findHash5BBox().x - textBlockPaddingX;
-        })
-        .attr("y", function () {
-          return findHash5BBox().y - textBlockPaddingY;
-        })
-        .attr("width", function () {
-          return findHash5BBox().width + 2*textBlockPaddingX;
-        })
-        .attr("height", function () {
-          return findHash5BBox().height + 2*textBlockPaddingY;
         });
 
     drawArrayBG(bft);
@@ -964,12 +1006,10 @@
     let arrowGroup4 = arrowPart.selectAll(".arrowGroup4").data(data,function (d,i) {
       return "arrow4"+d
     });
-    let arrowGroup5 = arrowPart.selectAll(".arrowGroup5").data(data, function (d,i) {
-      return "arrow5"+d
-    });
-    let arrowGroups = [arrowGroup1, arrowGroup2, arrowGroup3, arrowGroup4, arrowGroup5];
 
-    for (var j = 0; j < 5; j++) {
+    let arrowGroups = [arrowGroup1, arrowGroup2, arrowGroup3, arrowGroup4];
+
+    for (var j = 0; j < 4; j++) {
       // link
       let link = d3.linkHorizontal()
           .source(function (d,i) {
@@ -1143,20 +1183,6 @@
         .attr("height", function () {
           return findHash4BBox().height + 2*textBlockPaddingY;
         });
-    svg.select("#hash5Res").text(BFT.hash5(d));
-    svg.select("#hash5ResBBox")
-        .attr("x", function () {
-          return findHash5BBox().x - textBlockPaddingX;
-        })
-        .attr("y", function () {
-          return findHash5BBox().y - textBlockPaddingY;
-        })
-        .attr("width", function () {
-          return findHash5BBox().width + 2*textBlockPaddingX;
-        })
-        .attr("height", function () {
-          return findHash5BBox().height + 2*textBlockPaddingY;
-        });
 
     // show arrow animations
     for (var i = 1; i < BFT.hashSize+1; i++) {
@@ -1182,7 +1208,7 @@
   userFind.setAttribute("type", "text");
   // userFind.setAttribute("placeholder", "Any String");
   userFind.setAttribute("id", "bft-userInsert");
-  userFind.addEventListener("keypress", (e) => {
+  userFind.addEventListener("keyup", (e) => {
     if (e.key == "Enter") {
       e.preventDefault();
       findValue();
@@ -1298,7 +1324,6 @@
     hash2Result.text(hashResults[1]);
     hash3Result.text(hashResults[2]);
     hash4Result.text(hashResults[3]);
-    hash5Result.text(hashResults[4]);
 
     hashStrBBox
         .attr("x", function () {
@@ -1370,19 +1395,6 @@
           return findHash4BBox().height + 2*textBlockPaddingY;
         });
 
-    hash5BBox
-        .attr("x", function () {
-          return findHash5BBox().x - textBlockPaddingX;
-        })
-        .attr("y", function () {
-          return findHash5BBox().y - textBlockPaddingY;
-        })
-        .attr("width", function () {
-          return findHash5BBox().width + 2*textBlockPaddingX;
-        })
-        .attr("height", function () {
-          return findHash5BBox().height + 2*textBlockPaddingY;
-        });
 
     // result & explanation
     let message1 = "";
@@ -1429,6 +1441,6 @@
         // .attr("font-size", "1.1em")
         ;
   }
-// }
+}
 //
-// BFT_vis();
+BFT_vis();
