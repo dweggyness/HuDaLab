@@ -2,38 +2,55 @@
 <html lang="en" dir="ltr">
   <head>
     <style>
-      #canvas {
-        /* background-color: #d4d4d4; */
+      svg text {
+        font-family: Helvetica Neue;
+        font-size: 11pt;
       }
-
-      #button-container {
+      svg path {
+        fill:none;
+      }
+      #lht-container {
+        width:100%;
+      }
+      #eht-container {
+        width:100%;
+      }
+      #bft-container {
+        width:100%;
+      }
+      .section-title {
+        font-size: 14pt;
+      }
+      .button-container {
         display: flex;
+      }
+      .btndiv {
+        display: flex;
+        flex-direction: row;
+        margin: 5px;
+      }
+      .btndiv input {
+        position: relative;
+        transform: translate(0, -50%);
+        top: 50%;
+        height: 15px;
+        width: 40px;
       }
 
       .textBtn:hover {
         cursor: pointer;
       }
 
-      html {
-        font-family: sans-serif;
+      .btnText{
+        font-family: Helvetica Neue;
+        font-size: 10pt;
       }
 
-      text {
-        -webkit-user-select: none;
-        -khtml-user-select: none;
-        -moz-user-select: none;
-        -o-user-select: none;
-        user-select: none;
-      }
 
       @keyframes dash {
         to {
           stroke-dashoffset: 0;
         }
-      }
-
-      path {
-        fill:none;
       }
 
       .arrowAnimated {
