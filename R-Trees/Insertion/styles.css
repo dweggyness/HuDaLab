@@ -7,6 +7,10 @@
   --lightgray: #ececec;
 }
 
+#rtree-container {
+  max-width: 900px;
+}
+
 svg text {
   font-family: Helvetica Neue;
   font-size: 11pt;

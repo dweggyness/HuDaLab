@@ -596,7 +596,7 @@ function drawCartesianViz(rtree, drawQPolygon = false) {
   
     QNode
       .append("svg:image")
-      .attr("xlink:href", "../images/QPolygon.svg")
+      .attr("xlink:href", "./images/QPolygon.svg")
       .attr("x", (d) => margin + d.x * scaleX)
       .attr("y", (d) => margin + d.y * scaleY)
       .attr("width", (d) => d.width * scaleX)
