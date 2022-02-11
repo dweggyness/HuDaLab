@@ -1,0 +1,44 @@
+* {
+  box-sizing: border-box;
+}
+
+svg text {
+  font-family: Helvetica Neue;
+  font-size: 11pt;
+}
+
+.vizContainer {
+  outline: 2px solid black;
+  fill: none;
+}
+
+.controlsContainer {
+  display: flex;
+}
+
+.flex {
+  display: flex;
+}
+
+.flex-col {
+  display: flex;
+  flex-direction: column;
+}
+
+.playButton {
+  
+}
+
+.treeNode {
+  position: relative;
+  pointer-events: all;
+}
+
+.treeNode:hover {
+  transform: scale(1.1);
+  transform-origin: 50% 50%;
+  transform-box: fill-box;
+  transition: 0.2s ease;
+  fill: lightgreen;
+  z-index: 999;
+}
