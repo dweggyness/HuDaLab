@@ -1,5 +1,5 @@
 const width = 900;
-const height = 600;
+const height = 500;
 
 const controlsContainerHeight = 120;
 const treeVizWidth = 500;
@@ -16,15 +16,18 @@ const lightblue = "#e0e9fa";
 let curStep = 1;
 let playing = false;
 
-let currentHoveredNode = null;
+let playTimer = null;
 
 // base data for the RTree and RCartesian.
 // the visualizations are generated based off this data, so if the data is changed
 // the visualization changes too. its a state machine
 
 // properties
-// fill: 
-// highlight: bool -
+// layer: int - whcih layer the node is on. 1 is top layer, 2 middle, 3 botom
+// node: string - name of this node. used as an ID as well
+// order: int - which order the node will be placed on their respective layers
+// isGap: bool - if true, renders as an empty space ( used to provide spacing )
+// fill: string - fill color of the node, if any. defaults to gray
 const rtreeBaseArr = [
   { node: "R1", layer: 1, isGap: false, order: 1 },
   { node: "R2", layer: 1, isGap: false, order: 2 },
@@ -50,11 +53,15 @@ const rtreeBaseArr = [
 ]
 
 // properties: 
-// node: string -
-// highlight: bool -
-// color: string - 
-// fill: string - 
-// isNotHoverable: bool - 
+// node: string - name of this node. used as an ID as well
+// x: num - x coordinate relative to the graph. origin is top left. 0-20
+// y: num - y coordinate relative to the graph. origin is top left. 0-20
+// width: num - width, 0-20
+// height: num - height, 0-20
+// highlight: bool - if true, the border is thicker for this rectangle
+// color: string - border color of the rectangle, if any
+// fill: string - background color of the rectangle, if any
+// isNotHoverable: bool - if true, the element will not have pointer events
 const rCartesianBaseArr = [
   // { node: "test", x: 1, y: 4, width: 8, height: 15, color: "red", highlight: true, fill: "none" , isNotHoverable: true},
   { node: "R1", x: 1, y: 4, width: 8, height: 15, color: "red" },
@@ -79,10 +86,10 @@ const rCartesianBaseArr = [
 ]
 
 // properties: 
-// source: [Num, Num] -
-// target: [Num, Num]-
-// node: string -
-// highlight: bool -
+// node: string - node: string - name of this node. used as an ID as well
+// source: [Num, Num] - starting point of arrow, relative to the entire viz
+// target: [Num, Num]- ending point of arrow, relative to the entire viz
+// highlight: bool - if true, colors the arrow green. otherwise is black
 const rtreeArrowsArr = [
   {source: [230, 80], target: [190, 150], node:"R1"},
   {source: [270, 80], target: [310, 150], node:"R2"},
@@ -92,99 +99,6 @@ const rtreeArrowsArr = [
   {source: [330, 170], target: [450, 240], node:"B4"},
 ]
 
-const stepsArr = [
-  // step 1
-  { tree:[],   
-    cartesian:[{ node: "Q", x: 16, y: 15, width: 2, height: 2, color: "orange", fill: "orange" }], 
-    arrow: [],
-    stepText: `We want to insert a new node Q` 
-  },
-  // step 2
-  { tree:[{ node: "R1", fill: "yellow" }], 
-    cartesian:[
-      { node: "R1", highlight: "true" }, 
-      { node: "", x: 9, y: 4, width: 7, height: 15, color: "red", highlight: "true", fill: "lightcoral", isNotHoverable: true }, 
-      { node: "Q", x: 16, y: 15, width: 2, height: 2, color: "orange", fill: "orange" }
-    ], 
-    arrow: [],
-    stepText: `Start from the root, check how much R1 will have to expand if we insert
-      Q into R1. The shaded region is the amount R1 will have to expand.`
-  },
-  // step 3
-  { tree:[{ node: "R2", fill: "yellow" }, ], 
-    cartesian:[
-      { node: "R2", highlight: "true" },  
-      { node: "Q", x: 16, y: 15, width: 2, height: 2, color: "orange", fill: "orange" }
-    ], 
-    arrow: [],
-    stepText: `Check how much R2 will have to expand if we insert Q into R2. 
-      As Q is inside R2, there is no need to expand. Thus it is efficient to insert Q into R2`
-  },
-  // step 4
-  { tree:[{ node: "R2", fill: "yellow" }, ], 
-    cartesian:[
-      { node: "R2", highlight: "true" },  
-      { node: "Q", x: 16, y: 15, width: 2, height: 2, color: "orange", fill: "orange" }
-    ], 
-    arrow: [],
-    stepText: `As R2 does not expand, we pick R2 as our node. 
-      However, as R2 is not a leaf node, we continue the process from R2.`
-  },
-  // step 5
-  { tree:[{ node: "B3", fill: "yellow" }, { node: "R2", fill: "palegreen" }], 
-    cartesian:[
-      { node: "B3", highlight: "true" },   
-      { node: " ", x: 13, y: 15, width: 5, height: 4, color: "teal", highlight: "true", fill: "lightskyblue", isNotHoverable: true }, 
-      { node: "Q", x: 16, y: 15, width: 2, height: 2, color: "orange", fill: "orange" }
-    ], 
-    arrow: [{ node: "R2", highlight: true }],
-    stepText: `In R2, we check how much B3 will have to expand if we insert Q into B3. 
-      The shaded area is the amount that B3 will have to expand. `
-  },
-  // step 6
-  { tree:[{ node: "B4", fill: "yellow" }, { node: "R2", fill: "palegreen" }], 
-    cartesian:[
-      { node: "B4", highlight: "true" },  
-      { node: "", x: 15, y: 15, width: 4, height: 2, color: "teal", highlight: "true", fill: "lightskyblue", isNotHoverable: true }, 
-      { node: "Q", x: 16, y: 15, width: 2, height: 2, color: "orange", fill: "orange" }
-    ], 
-    arrow: [{ node: "R2", highlight: true }],
-    stepText: `We also check how much B4 will have to expand if we insert Q into B4. 
-      The shaded area is the amount that B4 will have to expand. `
-  },
-  // step 7
-  { tree:[{ node: "B4", fill: "palegreen" }, { node: "R2", fill: "palegreen" }], 
-    cartesian:[
-      { node: "B4", highlight: "true" },   
-      { node: "Q", x: 16, y: 15, width: 2, height: 2, color: "orange", fill: "orange" }
-    ], 
-    arrow: [{ node: "B4", highlight: true }, { node: "R2", highlight: true }],
-    stepText: `We also check how much B4 will have to expand if we insert Q into B4. 
-      The shaded area is the amount that B4 will have to expand. `
-  },
-  // step 8
-  { tree:[{node: "Q", order: 13, layer: 3, fill: "palegreen"}, { node: "B4", fill: "palegreen" }, { node: "R2", fill: "palegreen" }], 
-    cartesian:[
-      { node: "B4", highlight: "true" },   
-      { node: "Q", x: 16, y: 15, width: 2, height: 2, color: "orange", fill: "orange" }
-    ], 
-    arrow: [{ node: "B4", highlight: true }, { node: "R2", highlight: true }],
-    stepText: `As B4 is a leaf node, and adding an element into B4 won’t cause it to overflow 
-      ( M = 3 ),we insert Q into B4.`,
-    drawQTree: true,
-  },
-  // step 9
-  { tree:[{node: "Q", order: 13, layer: 3, fill: "palegreen"}, { node: "B4", fill: "palegreen" }, { node: "R2", fill: "palegreen" }], 
-    cartesian:[
-      { node: "B4", color: "none" },   
-      { node: "Q", x: 16, y: 15, width: 2, height: 2, color: "orange", fill: "orange" }
-    ], 
-    arrow: [{ node: "B4", highlight: true }, { node: "R2", highlight: true }],
-    stepText: `As B4 is a leaf node, and adding an element into B4 won’t cause it to overflow 
-      ( M = 3 ),we insert Q into B4.`,
-    drawQTree: true,
-  },
-]
 
 /* given settings for a certain step, the function generates the tree/cartesian array that will be
  passed to the draw function. it uses the base array, and then modifies it using the settings
@@ -258,18 +172,143 @@ const getArrowArr = (settings) => {
 }
 
 
-// toggle play state 
-const handlePlayButton = (e) => {
-  playing = !playing;
+// steps array. each step contains objects that details it's difference from the
+// "base" arrays located above.
+const stepsArr = [
+  // step 1
+  { tree:[],   
+    cartesian:[{ node: "Q", x: 16, y: 15, width: 2, height: 2 }], 
+    arrow: [],
+    stepText: `We want to insert a new polygon Q into the R-Tree.`,
+    drawQPolygon: true,
+  },
+  // step 2
+  { tree:[],   
+    cartesian:[{ node: "Q", x: 16, y: 15, width: 2, height: 2, color: "orange", fill: "orange" }], 
+    arrow: [],
+    stepText: `First, construct a bounding rectangle for Q.`,
+    drawQPolygon: true,
+  },
+  // step 3
+  { tree:[{ node: "R1", fill: "yellow" }], 
+    cartesian:[
+      { node: "R1", highlight: "true" }, 
+      { node: "", x: 9, y: 4, width: 9, height: 15, color: "red", highlight: "true", fill: "lightcoral", isNotHoverable: true }, 
+      { node: "Q", x: 16, y: 15, width: 2, height: 2, color: "orange", fill: "orange" }
+    ], 
+    arrow: [],
+    stepText: `Start from the root, check how much R1 will have to expand if we insert
+      Q into R1. The shaded region is the amount R1 will have to expand.`
+  },
+  // step 3
+  { tree:[{ node: "R2", fill: "yellow" }, ], 
+    cartesian:[
+      { node: "R2", highlight: "true" },  
+      { node: "Q", x: 16, y: 15, width: 2, height: 2, color: "orange", fill: "orange" }
+    ], 
+    arrow: [],
+    stepText: `Check how much R2 will have to expand if we insert Q into R2. 
+      As Q is inside R2, there is no need to expand. Thus it is efficient to insert Q into R2`
+  },
+  // step 4
+  { tree:[{ node: "R2", fill: "yellow" }, ], 
+    cartesian:[
+      { node: "R2", highlight: "true" },  
+      { node: "Q", x: 16, y: 15, width: 2, height: 2, color: "orange", fill: "orange" }
+    ], 
+    arrow: [],
+    stepText: `As R2 does not expand, we pick R2 as our node. 
+      However, as R2 is not a leaf node, we continue the process from R2.`
+  },
+  // step 5
+  { tree:[{ node: "B3", fill: "yellow" }, { node: "R2", fill: "palegreen" }], 
+    cartesian:[
+      { node: "B3", highlight: "true" },   
+      { node: " ", x: 13, y: 15, width: 5, height: 4, color: "teal", highlight: "true", fill: "lightskyblue", isNotHoverable: true }, 
+      { node: "Q", x: 16, y: 15, width: 2, height: 2, color: "orange", fill: "orange" }
+    ], 
+    arrow: [{ node: "R2", highlight: true }],
+    stepText: `In R2, we check how much B3 will have to expand if we insert Q into B3. 
+      The shaded area is the amount that B3 will have to expand. `
+  },
+  // step 6
+  { tree:[{ node: "B4", fill: "yellow" }, { node: "R2", fill: "palegreen" }], 
+    cartesian:[
+      { node: "B4", highlight: "true" },  
+      { node: "", x: 15, y: 15, width: 4, height: 2, color: "teal", highlight: "true", fill: "lightskyblue", isNotHoverable: true }, 
+      { node: "Q", x: 16, y: 15, width: 2, height: 2, color: "orange", fill: "orange" }
+    ], 
+    arrow: [{ node: "R2", highlight: true }],
+    stepText: `We also check how much B4 will have to expand if we insert Q into B4. 
+      The shaded area is the amount that B4 will have to expand. `
+  },
+  // step 7
+  { tree:[{ node: "B4", fill: "palegreen" }, { node: "R2", fill: "palegreen" }], 
+    cartesian:[
+      { node: "B4", highlight: "true" },   
+      { node: "Q", x: 16, y: 15, width: 2, height: 2, color: "orange", fill: "orange" }
+    ], 
+    arrow: [{ node: "B4", highlight: true }, { node: "R2", highlight: true }],
+    stepText: `We also check how much B4 will have to expand if we insert Q into B4. 
+      The shaded area is the amount that B4 will have to expand. `
+  },
+  // step 8
+  { tree:[{node: "Q", order: 13, layer: 3, fill: "palegreen"}, { node: "B4", fill: "palegreen" }, { node: "R2", fill: "palegreen" }], 
+    cartesian:[
+      { node: "B4", highlight: "true" },   
+      { node: "Q", x: 16, y: 15, width: 2, height: 2, color: "green", fill: "palegreen" }
+    ], 
+    arrow: [{ node: "B4", highlight: true }, { node: "R2", highlight: true }],
+    stepText: `As B4 is a leaf node, and adding an element into B4 won’t cause it to overflow 
+      ( M = 3 ),we insert Q into B4.`,
+    drawQTree: true,
+    drawQPolygon: true,
+  },
+  // step 9
+  { tree:[{node: "Q", order: 13, layer: 3, fill: "palegreen"}, { node: "B4", fill: "palegreen" }, { node: "R2", fill: "palegreen" }], 
+    cartesian:[
+      { node: "B4", color: "none" },   
+      { node: "Q", x: 16, y: 15, width: 2, height: 2, color: "green", fill: "palegreen" }
+    ], 
+    arrow: [{ node: "B4", highlight: true }, { node: "R2", highlight: true }],
+    stepText: `After inserting Q into B4, we recalculate the bounding rectangle of B4.`,
+    drawQTree: true,
+    drawQPolygon: true,
+  },
+  // step 10
+  { tree:[{node: "Q", order: 13, layer: 3, fill: "palegreen"}, { node: "B4", fill: "palegreen" }, { node: "R2", fill: "palegreen" }], 
+    cartesian:[
+      { node: "B4", height: 9 },   
+      { node: "Q", x: 16, y: 15, width: 2, height: 2, color: "green", fill: "palegreen" }
+    ], 
+    arrow: [{ node: "B4", highlight: true }, { node: "R2", highlight: true }],
+    stepText: `We also recalculate the bounding rectangle of R2, but as Q is completely within
+    the bounds of R2, the area of the bounding rectangle does not change.`,
+    drawQTree: true,
+    drawQPolygon: true,
+  },
+  // step 11
+  { tree:[{node: "Q", order: 13, layer: 3, fill: "palegreen"}, { node: "B4", fill: "palegreen" }, { node: "R2", fill: "palegreen" }], 
+    cartesian:[
+      { node: "B4", height: 9 },   
+      { node: "Q", x: 16, y: 15, width: 2, height: 2, color: "green", fill: "palegreen" }
+    ], 
+    arrow: [{ node: "B4", highlight: true }, { node: "R2", highlight: true }],
+    stepText: `As the bounding rectangle adjustment has propagated to the root, insertion is
+    complete.`,
+    drawQTree: true,
+    drawQPolygon: true,
+  },
+]
 
-  if (playing) {
-    d3.select(".playIcon").attr("style", "display: none");
-    d3.select(".pauseIcon").attr("style", "display: block");
-  } else {
-    d3.select(".playIcon").attr("style", "display: block");
-    d3.select(".pauseIcon").attr("style", "display: none");
-  }
-}
+
+
+
+//////////////////////////////////////
+
+
+
+
 
 // when a node is hovered, highlight the node by scaling it and changing its colour
 const onNodeHover = (node) => {
@@ -308,6 +347,7 @@ const onNodeHover = (node) => {
     .attr("style", "display: none;");
 }
 
+// on node unhover, we reset the style of that node to its original state
 const onNodeUnhover = (node) => {
   const treeNode = d3.selectAll("#treeVizContainer > g").filter((d) => {
     if (d && d.node !== undefined) {
@@ -360,6 +400,7 @@ function drawTreeViz(rtree = rtreeBaseArr, links = rtreeArrowsArr, drawQTree = f
     .enter()
     .append("g")
 
+  // draw boxes for each node
   nodes
     .append("rect")
     .attr("x", (d) => { 
@@ -401,7 +442,8 @@ function drawTreeViz(rtree = rtreeBaseArr, links = rtreeArrowsArr, drawQTree = f
         onNodeUnhover(i);
       }
     });
-      
+  
+  // draw text for each node
   nodes
     .append("text")
     .text((d) => { 
@@ -425,7 +467,7 @@ function drawTreeViz(rtree = rtreeBaseArr, links = rtreeArrowsArr, drawQTree = f
   // very special case where we want to draw node Q in the tree
   if (drawQTree) {
     const QNode = nodes
-      .filter(function(d) { console.log(d); return d.node == "Q" })
+      .filter(function(d) { return d.node == "Q" })
 
     QNode.select("rect")
       .attr("x", layer3X + 10.5 * nodeWidth)
@@ -456,7 +498,8 @@ function drawTreeViz(rtree = rtreeBaseArr, links = rtreeArrowsArr, drawQTree = f
   }
 }
 
-function drawCartesianViz(rtree) {
+// draw the cartesian/graph view of the r-tree. to the right
+function drawCartesianViz(rtree, drawQPolygon = false) {
   const cartesianViz = d3.select("#cartesianVizContainer");
   cartesianViz.html("");
 
@@ -534,9 +577,25 @@ function drawCartesianViz(rtree) {
     })
     .attr("style", "pointer-events: none;");
 
+  // very special case where we want to draw a polygon representing Q
+  if (drawQPolygon) {
+    const QNode = nodes
+      .filter(function(d) { return d.node == "Q" })
+  
+    QNode
+      .append("svg:image")
+      .attr("xlink:href", "../images/QPolygon.svg")
+      .attr("x", (d) => margin + d.x * scaleX)
+      .attr("y", (d) => margin + d.y * scaleY)
+      .attr("width", (d) => d.width * scaleX)
+      .attr("height",(d) => d.height * scaleY)
+      .lower();
+  }
+
   nodes.exit().remove();
 }
 
+// event listeners for click events for the buttons at the top
 function setupPlaybackController() {
   d3.select(".playButton")
     .on("click", () => handlePlayButton());
@@ -544,13 +603,68 @@ function setupPlaybackController() {
   d3.select("#nextStepButton")
     .on("click", () => {
       incrementStep();
+      stopPlayback();
     })
 
   d3.select("#prevStepButton")
     .on("click", () => {
       decrementStep();
+      stopPlayback();
+    })
+
+  d3.select("#resetStepButton")
+    .on("click", () => {
+      curStep = 1;
+      changeStep(curStep);
+      stopPlayback();
+    })
+
+  d3.select("#lastStepButton")
+    .on("click", () => {
+      curStep = stepsArr.length;
+      changeStep(curStep);
+      stopPlayback();
     })
 }
+
+// toggle play state 
+const handlePlayButton = () => {
+  playing = !playing;
+  
+  if (playing) {
+    startPlayback();
+  } else {
+    stopPlayback();
+  }
+}
+
+const isPlaybackFinished = () => {
+  return curStep == stepsArr.length;
+}
+
+const stopPlayback = () => {
+  d3.select(".playIcon").attr("style", "display: block");
+  d3.select(".pauseIcon").attr("style", "display: none");
+
+  clearInterval(playTimer);
+  playTimer = null;
+  playing = false;
+}
+
+const startPlayback = () => {
+  if (isPlaybackFinished()) return;
+  d3.select(".playIcon").attr("style", "display: none");
+  d3.select(".pauseIcon").attr("style", "display: block");
+
+  playTimer = setInterval(() => {
+    if (curStep == stepsArr.length) {
+      stopPlayback();
+    }
+    incrementStep()
+  }, 2000);
+  playing = true;
+}
+
 
 function decrementStep() {
   if (curStep > 1) {
@@ -566,22 +680,24 @@ function incrementStep() {
   }
 }
 
-function draw(treeArr, cartesianArr, arrowArr, drawQTree = false) {
+// draws the visualization based on the data passed to it.
+function draw(treeArr, cartesianArr, arrowArr, drawQTree = false, drawQPolygon = false) {
   drawTreeViz(treeArr, arrowArr, drawQTree);
-  drawCartesianViz(cartesianArr);
+  drawCartesianViz(cartesianArr, drawQPolygon);
 }
 
 // updates the visualization to a certain step. 
 function changeStep(step) {
   let curStep = step - 1; // step 1 is index 0 in the arr
 
-  // get the information about this step from the step array.
+  // get the data about this step from the step array.
   const { 
     stepText, 
     tree: treeSettings, 
     cartesian: cartesianSettings, 
     arrow: arrSettings,
     drawQTree,
+    drawQPolygon,
   } = stepsArr[curStep];
 
   // update the step text
@@ -589,15 +705,16 @@ function changeStep(step) {
     `Step ${step}: ${stepText}`
   )
 
-  // update the tree/cartesian arr using the info about this step
+  // update the tree/cartesian arrays using the info about this step
   const treeArr = getTreeArr(treeSettings);
   const cartesianArr = getCartesianArr(cartesianSettings);
   const arrowArr = getArrowArr(arrSettings);
 
-  // update the visualization
-  draw(treeArr,cartesianArr,arrowArr,drawQTree);
+  // update the visualization 
+  draw(treeArr,cartesianArr,arrowArr,drawQTree,drawQPolygon);
 }
 
+// draw the elements that won't have to change with the data, e.g the viz border
 function main() {
   // container for the entire component
   let mainContainer = d3.select("#rtree-container")
@@ -631,12 +748,8 @@ function main() {
   .attr("transform", `translate(${treeVizWidth}, 0)`)
   .attr("id", "cartesianVizContainer");
 
-    
   setupPlaybackController();
 
-
-  // node: name of the node, layer: which layer its on, 1 being the highest
-  // isGap: bool - empty node to provide spacing, order: the order of the node in each layer from L-R
   changeStep(1); 
 }
 
