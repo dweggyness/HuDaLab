@@ -184,7 +184,7 @@ const stepsArr = [
   },
   // step 2
   { tree:[],   
-    cartesian:[{ node: "Q", x: 16, y: 15, width: 2, height: 2, color: "orange", fill: "orange" }], 
+    cartesian:[{ node: "Q", x: 16, y: 15, width: 2, height: 2, color: "orange", fill: "orange", highlight: true }], 
     arrow: [],
     stepText: `First, construct a bounding rectangle for Q.`,
     drawQPolygon: true,
@@ -200,7 +200,7 @@ const stepsArr = [
     stepText: `Start from the root, check how much R1 will have to expand if we insert
       Q into R1. The shaded region is the amount R1 will have to expand.`
   },
-  // step 3
+  // step 4
   { tree:[{ node: "R2", fill: "yellow" }, ], 
     cartesian:[
       { node: "R2", highlight: "true" },  
@@ -210,8 +210,8 @@ const stepsArr = [
     stepText: `Check how much R2 will have to expand if we insert Q into R2. 
       As Q is inside R2, there is no need to expand. Thus it is efficient to insert Q into R2`
   },
-  // step 4
-  { tree:[{ node: "R2", fill: "yellow" }, ], 
+  // step 5
+  { tree:[{ node: "R2", fill: "palegreen" }, ], 
     cartesian:[
       { node: "R2", highlight: "true" },  
       { node: "Q", x: 16, y: 15, width: 2, height: 2, color: "orange", fill: "orange" }
@@ -220,7 +220,7 @@ const stepsArr = [
     stepText: `As R2 does not expand, we pick R2 as our node. 
       However, as R2 is not a leaf node, we continue the process from R2.`
   },
-  // step 5
+  // step 6
   { tree:[{ node: "B3", fill: "yellow" }, { node: "R2", fill: "palegreen" }], 
     cartesian:[
       { node: "B3", highlight: "true" },   
@@ -231,7 +231,7 @@ const stepsArr = [
     stepText: `In R2, we check how much B3 will have to expand if we insert Q into B3. 
       The shaded area is the amount that B3 will have to expand. `
   },
-  // step 6
+  // step 7
   { tree:[{ node: "B4", fill: "yellow" }, { node: "R2", fill: "palegreen" }], 
     cartesian:[
       { node: "B4", highlight: "true" },  
@@ -242,17 +242,17 @@ const stepsArr = [
     stepText: `We also check how much B4 will have to expand if we insert Q into B4. 
       The shaded area is the amount that B4 will have to expand. `
   },
-  // step 7
+  // step 8
   { tree:[{ node: "B4", fill: "palegreen" }, { node: "R2", fill: "palegreen" }], 
     cartesian:[
       { node: "B4", highlight: "true" },   
       { node: "Q", x: 16, y: 15, width: 2, height: 2, color: "orange", fill: "orange" }
     ], 
     arrow: [{ node: "B4", highlight: true }, { node: "R2", highlight: true }],
-    stepText: `We also check how much B4 will have to expand if we insert Q into B4. 
-      The shaded area is the amount that B4 will have to expand. `
+    stepText: `As inserting Q into B4 expands the node by a smaller area, it is thus more 
+    efficient to insert Q into B4. We pick B4 as our node.`
   },
-  // step 8
+  // step 9
   { tree:[{node: "Q", order: 13, layer: 3, fill: "palegreen"}, { node: "B4", fill: "palegreen" }, { node: "R2", fill: "palegreen" }], 
     cartesian:[
       { node: "B4", highlight: "true" },   
@@ -264,8 +264,8 @@ const stepsArr = [
     drawQTree: true,
     drawQPolygon: true,
   },
-  // step 9
-  { tree:[{node: "Q", order: 13, layer: 3, fill: "palegreen"}, { node: "B4", fill: "palegreen" }, { node: "R2", fill: "palegreen" }], 
+  // step 10
+  { tree:[{node: "Q", order: 13, layer: 3, fill: "palegreen"}, { node: "B4", fill: "yellow" }, { node: "R2", fill: "palegreen" }], 
     cartesian:[
       { node: "B4", color: "none" },   
       { node: "Q", x: 16, y: 15, width: 2, height: 2, color: "green", fill: "palegreen" }
@@ -275,10 +275,22 @@ const stepsArr = [
     drawQTree: true,
     drawQPolygon: true,
   },
-  // step 10
+  // step 11
   { tree:[{node: "Q", order: 13, layer: 3, fill: "palegreen"}, { node: "B4", fill: "palegreen" }, { node: "R2", fill: "palegreen" }], 
     cartesian:[
-      { node: "B4", height: 9 },   
+      { node: "B4", height: 9, highlight: true },   
+      { node: "Q", x: 16, y: 15, width: 2, height: 2, color: "green", fill: "palegreen" }
+    ], 
+    arrow: [{ node: "B4", highlight: true }, { node: "R2", highlight: true }],
+    stepText: `The bounding rectangle of B4 is recalculated.`,
+    drawQTree: true,
+    drawQPolygon: true,
+  },
+  // step 12
+  { tree:[{node: "Q", order: 13, layer: 3, fill: "palegreen"}, { node: "B4", fill: "palegreen" }, { node: "R2", fill: "yellow" }], 
+    cartesian:[
+      { node: "B4", height: 9 },
+      { node: "R2", highlight: true},   
       { node: "Q", x: 16, y: 15, width: 2, height: 2, color: "green", fill: "palegreen" }
     ], 
     arrow: [{ node: "B4", highlight: true }, { node: "R2", highlight: true }],
@@ -287,7 +299,7 @@ const stepsArr = [
     drawQTree: true,
     drawQPolygon: true,
   },
-  // step 11
+  // step 13
   { tree:[{node: "Q", order: 13, layer: 3, fill: "palegreen"}, { node: "B4", fill: "palegreen" }, { node: "R2", fill: "palegreen" }], 
     cartesian:[
       { node: "B4", height: 9 },   
