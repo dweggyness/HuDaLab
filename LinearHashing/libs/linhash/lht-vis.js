@@ -615,6 +615,15 @@ let hashedValueBBox = paramPart.insert("rect", "text")
 //@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 function drawViz(lht) {
 
+  console.log('hello', lht);
+  console.log('hello222', lhtRecord);
+  console.log('insert', insertLog);
+  console.log('stateSplit', stateSplit);
+
+  // let insertLog = [null];
+  // let stateHash2 = [null];
+  // let stateSplit = [null];
+
 
   drawKeys(lht);
   drawValues(lht);
@@ -650,7 +659,6 @@ function drawViz(lht) {
 }
 
 function drawKeys(lht) {
-  console.log(lht);
   let bucketData = lht.buckets;
   // keys
   let keyGroup = keyPart

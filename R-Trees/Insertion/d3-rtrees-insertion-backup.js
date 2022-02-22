@@ -1,11 +1,12 @@
 const width = 900;
 const height = 500;
 
+const controlsContainerHeight = 120;
 const treeVizWidth = 500;
 const cartesianVizWidth = width - treeVizWidth;
 
 const borderWidth = 1.5;
-const rtreeHistory = [];
+const states = [];
 
 const darkgray = "#555555";
 const gray = "#8c8c8c";
@@ -52,6 +53,39 @@ const rtreeBaseArr = [
 ]
 
 // properties: 
+// node: string - name of this node. used as an ID as well
+// x: num - x coordinate relative to the graph. origin is top left. 0-20
+// y: num - y coordinate relative to the graph. origin is top left. 0-20
+// width: num - width, 0-20
+// height: num - height, 0-20
+// highlight: bool - if true, the border is thicker for this rectangle
+// color: string - border color of the rectangle, if any
+// fill: string - background color of the rectangle, if any
+// isNotHoverable: bool - if true, the element will not have pointer events
+const rCartesianBaseArr = [
+  // { node: "test", x: 1, y: 4, width: 8, height: 15, color: "red", highlight: true, fill: "none" , isNotHoverable: true},
+  { node: "R1", x: 1, y: 4, width: 8, height: 15, color: "red" },
+  { node: "R2", x: 6, y: 8, width: 13, height: 11, color: "red", textPlacement: "bottom" },
+
+  { node: "B1", x: 1, y: 14, width: 4, height: 5, color: "teal" },
+  { node: "B2", x: 4, y: 4, width: 5, height: 7, color: "teal" },
+  { node: "B3", x: 6, y: 15, width: 7, height: 4, color: "teal", textPlacement: "bottom" },
+  { node: "B4", x: 15, y: 8, width: 4, height: 7, color: "teal" },
+
+  { node: "N1", x: 1, y: 16, width: 2, height: 3, color: "black" },
+  { node: "N2", x: 5, y: 14, width: 0.1, height: 0.1, color: "black", textPlacement: "bottom" }, // point
+  { node: "N3", x: 4, y: 4, width: 2, height: 4, color: "black", textPlacement: "bottom"},
+  { node: "N4", x: 7, y: 6, width: 0.1, height: 0.1, color: "black" },
+  { node: "N5", x: 5, y: 9, width: 4, height: 2, color: "black", textPlacement: "bottom" },
+
+  { node: "N6", x: 6, y: 15, width: 4, height: 2, color: "black" },
+  { node: "N7", x: 11, y: 16, width: 2, height: 3, color: "black" },
+
+  { node: "N8", x: 19, y: 15, width: 0.1, height: 0.1, color: "black", textPlacement: "bottom" },
+  { node: "N9", x: 15, y: 8, width: 4, height: 3, color: "black", textPlacement: "bottom" },
+]
+
+// properties: 
 // node: string - node: string - name of this node. used as an ID as well
 // source: [Num, Num] - starting point of arrow, relative to the entire viz
 // target: [Num, Num]- ending point of arrow, relative to the entire viz
@@ -90,6 +124,23 @@ where objects = { node: string, layer: int, isGap: bool, order: int, highlight: 
 */
 const getTreeArr = (settings) => {
   let arr = [ ...rtreeBaseArr]; // clone
+
+  for (const obj of settings) {
+    if (obj.node === undefined) {
+      arr.push(obj);
+    } else if (arr.find(arrObj => arrObj.node == obj.node)) {
+      // search the array for an object with obj.node == node, and overwrite it with the new one
+      arr = arr.map(arrObj => arrObj.node == obj.node ? {...arrObj, ...obj} : arrObj);
+    } else {
+      arr.push(obj);
+    }
+  }
+
+  return arr;
+}
+
+const getCartesianArr = (settings) => {
+  let arr = [ ...rCartesianBaseArr]; // clone
 
   for (const obj of settings) {
     if (obj.node === undefined) {
@@ -460,7 +511,7 @@ function drawTreeViz(rtree = rtreeBaseArr, links = rtreeArrowsArr, drawQTree = f
 }
 
 // draw the cartesian/graph view of the r-tree. to the right
-function drawCartesianViz(rtree) {
+function drawCartesianViz(rtree, drawQPolygon = false) {
   const cartesianViz = d3.select("#cartesianVizContainer");
   cartesianViz.html("");
 
@@ -503,7 +554,7 @@ function drawCartesianViz(rtree) {
     .attr("height",(d) => d.height * scaleY)
     .attr("fill", (d) => d.fill ? d.fill : "none")
     .attr("fill-opacity", 0.7)
-    .attr("style", (d) => d.highlight ? `outline: 5px solid ${d.color};` : `outline: 1px solid black;`)
+    .attr("style", (d) => d.highlight ? `outline: 5px solid ${d.color};` : `outline: 2px solid ${d.color};`)
     .attr("class", "cartesianNode")
     .on('mouseover', (d, i) => {
       if (!i.isGap && !i.isNotHoverable) {
@@ -537,6 +588,21 @@ function drawCartesianViz(rtree) {
       return margin + d.y * scaleY + 20;
     })
     .attr("style", "pointer-events: none;");
+
+  // very special case where we want to draw a polygon representing Q
+  if (drawQPolygon) {
+    const QNode = nodes
+      .filter(function(d) { return d.node == "Q" })
+  
+    QNode
+      .append("svg:image")
+      .attr("xlink:href", "./images/QPolygon.svg")
+      .attr("x", (d) => margin + d.x * scaleX)
+      .attr("y", (d) => margin + d.y * scaleY)
+      .attr("width", (d) => d.width * scaleX)
+      .attr("height",(d) => d.height * scaleY)
+      .lower();
+  }
 
   nodes.exit().remove();
 }
@@ -640,6 +706,7 @@ function changeStep(step) {
   const { 
     stepText, 
     tree: treeSettings, 
+    cartesian: cartesianSettings, 
     arrow: arrSettings,
     drawQTree,
     drawQPolygon,
@@ -652,51 +719,23 @@ function changeStep(step) {
 
   // update the tree/cartesian arrays using the info about this step
   const treeArr = getTreeArr(treeSettings);
+  const cartesianArr = getCartesianArr(cartesianSettings);
   const arrowArr = getArrowArr(arrSettings);
 
   // update the visualization 
-  draw(treeArr,rtreeHistory[0],arrowArr,drawQTree,drawQPolygon);
+  draw(treeArr,cartesianArr,arrowArr,drawQTree,drawQPolygon);
 }
 
 // draw the elements that won't have to change with the data, e.g the viz border
 function main() {
-  const rCartesianBaseArr = [
-    // { node: "test", x: 1, y: 4, width: 8, height: 15, color: "red", highlight: true, fill: "none" , isNotHoverable: true},
-    { node: "R1", minX: 1, minY: 4, maxX: 9, maxY: 19},
-    { node: "R2", minX: 6, minY: 8, maxX: 19, maxY: 18},
-  
-    { node: "B1", minX: 1, minY: 14, maxX: 5, maxY: 19},
-    { node: "B2", minX: 4, minY: 4, maxX: 9, maxY: 11},
-    { node: "B3", minX: 6, minY: 15, maxX: 13, maxY: 19},
-    { node: "B4", minX: 15, minY: 8, maxX: 19, maxY: 15},
-  
-    { node: "N1", minX: 1, minY: 16, maxX: 3, maxY: 19},
-    { node: "N2", minX: 5, minY: 14, maxX: 5.1, maxY: 14.1}, // point
-    { node: "N3", minX: 4, minY: 4, maxX: 6, maxY: 8},
-    { node: "N4", minX: 7, minY: 6, maxX: 7.1, maxY: 6.1},
-    { node: "N5", minX: 5, minY: 9, maxX: 9, maxY: 11},
-  
-    { node: "N6", minX: 6, minY: 15, maxX: 10, maxY: 17},
-    { node: "N7", minX: 11, minY: 16, maxX: 13, maxY: 19},
-  
-    { node: "N8", minX: 19, minY: 15, maxX: 19.1, maxY: 15.1},
-    { node: "N9", minX: 15, minY: 8, maxX: 19, maxY: 11},
-  ]
-
-  let rbushe = new rbush(3);
-  for (const obj of rCartesianBaseArr) {
-    rbushe.insert(obj);
-    rtreeHistory.push(structuredClone(rbushe.data));
-  }
-  console.log('hist', rtreeHistory);
-  console.log(rbushe.data);
-  console.log(rbushe.all())
-
-
   // container for the entire component
   let mainContainer = d3.select("#rtree-container")
     .append("svg")
-    .attr("viewBox", [0, 0, width, height]);
+    .attr("viewBox", [0, 0, width, height - controlsContainerHeight]);
+
+  // add the dimensions for the control container
+  d3.select(".controlsContainer")
+    .attr("style", `width:${width}px; height:${controlsContainerHeight}px`);
 
   // container for viz part of component, incl tree viz and cartesian viz
   let vizContainer = mainContainer
@@ -709,7 +748,7 @@ function main() {
     .append("rect")
     .attr("class", "vizContainer")
     .attr("width", width - borderWidth * 2)
-    .attr("height", height - borderWidth * 2)
+    .attr("height", height - controlsContainerHeight - borderWidth * 2)
     .attr("fill", "none");
 
   // setup tree visualization container
