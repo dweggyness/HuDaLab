@@ -25,6 +25,10 @@ rbush.prototype = {
         return this._all(this.data, []);
     },
 
+    allIncludingNonLeaf: function() {
+      return this._allIncludingNonLeaf(this.data, []);
+    },
+
     search: function (bbox) {
 
         var node = this.data,
@@ -197,6 +201,18 @@ rbush.prototype = {
             node = nodesToSearch.pop();
         }
         return result;
+    },
+
+    _allIncludingNonLeaf: function (node, result) {
+      var nodesToSearch = [];
+      while (node) {
+        result.push.apply(result, node.children);
+        if (!node.leaf) {
+          nodesToSearch.push.apply(nodesToSearch, node.children);
+        }
+        node = nodesToSearch.pop();
+      }
+      return result;
     },
 
     _build: function (items, left, right, height) {
