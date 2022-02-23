@@ -529,7 +529,7 @@ function intersects(a, b) {
            b.maxY >= a.minY;
 }
 
-function createNode(children) {
+function createNode(children, curKey) {
     return {
         children: children,
         height: 1,

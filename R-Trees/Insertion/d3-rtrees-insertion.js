@@ -12,7 +12,7 @@ const gray = "#8c8c8c";
 const lightgray = "#ececec";
 const lightblue = "#e0e9fa";
 
-let curStep = 1;
+let curStep = 5;
 let playing = false;
 
 let playTimer = null;
@@ -340,127 +340,178 @@ const onNodeUnhover = (node) => {
     .attr("style", "display: block; pointer-events: none;");
 }
 
+var id = 0;
 // draw the tree view of the RTree, which is to the left
-function drawTreeViz(rtree = rtreeBaseArr, links = rtreeArrowsArr, drawQTree = false) {
+function drawTreeViz(rtree) {
   const treeViz = d3.select("#treeVizContainer");
+  treeViz.transition()
+    .attr("transform", "translate(0, 100)");
+  
+  const treeData = rtree.data;
 
-  // reset the canvas
-  treeViz.html("");
+  var treeWidth = width / 2;
+  var treeHeight = height * 0.4;
 
-  const nodeWidth = 40;
-  const nodeHeight = 20;
+  var nodeHeight = 17;
+  var nodeWidth = 34;
 
-  const layer1X = (treeVizWidth / 2) - (nodeWidth * 2 / 2);
-  const layer2X = (treeVizWidth / 2) - ((nodeWidth * 5) / 2);
-  const layer3X = (treeVizWidth / 2) - ((nodeWidth * 12) / 2);
+  const treemap = d3.tree().size([treeWidth, treeHeight]);
+  let nodes = d3.hierarchy(treeData);
+  treemap.separation((a, b) => a.parent == b.parent ? 1 : 2)
+  treemap(nodes)
 
-  // construct the tree
-  let nodes = treeViz
-    .selectAll("g")
-    .data(rtree)
-    .enter()
+  console.log('node', nodes);
+
+  // treemap.separation((a, b) => (a.parent == b.parent ? 1 : 2) / 3);
+  const node = treeViz.selectAll(".node")
+    .data(nodes.descendants(), (d, i) => d.id || (d.id = ++i));
+
+  const nodeEnter = node.enter()
     .append("g")
+    .attr("transform", d => "translate(" + d.x + "," + d.y  + ")")
 
-  // draw boxes for each node
-  nodes
-    .append("rect")
-    .attr("x", (d) => { 
-      let layerXConst = layer1X;
-      if (d.layer == 1) {
-        layerXConst = layer1X;
-      } else if (d.layer == 2) {
-        layerXConst = layer2X;
-      } else if (d.layer == 3) {
-        layerXConst = layer3X;
-      }
-      return layerXConst + (d.order - 1) * nodeWidth;
-    })
-    .attr("y", (d) => 60 + (d.layer - 1) * 90)
+  nodeEnter.append("rect")
+    .attr("x", (d) => - nodeWidth / 2)
+    .attr("y", (d) => - nodeHeight / 2)
     .attr("width", nodeWidth)
     .attr("height", nodeHeight)
-    .attr("class", (d) => {
-      if (!d.isGap) return "treeNode";
-      return "";
-    })
-    .attr("fill", (d) => {
-      if (d.fill) return d.fill;
-      if (d.isGap) return "none";
-      return lightgray;
-    })
-    .attr("style", (d) => {
-      if (d.isGap) return "";
-      return `outline: 2px solid ${gray};`
-    })
-    .on('mouseover', (d, i) => {
-      if (!i.isGap) {
-        currentHoveredNode = i.node;
-        onNodeHover(i);
-      }
-    })
-    .on('mouseout', (d, i) => {
-      if (!i.isGap) {
-        currentHoveredNode = null;
-        onNodeUnhover(i);
-      }
-    });
+    .attr("class", (d) => "treeNode")
+    .attr("fill", (d) => lightgray)
+    .attr("stroke", darkgray);
   
-  // draw text for each node
-  nodes
-    .append("text")
-    .text((d) => { 
-      if (d.node) return d.node;
-      return "";
-    })
-    .attr("x", (d) => { 
-      let layerXConst = layer1X;
-      if (d.layer == 1) {
-        layerXConst = layer1X;
-      } else if (d.layer == 2) {
-        layerXConst = layer2X;
-      } else if (d.layer == 3) {
-        layerXConst = layer3X;
-      }
-      return layerXConst + (d.order - 1) * nodeWidth + 10;
-    })
-    .attr("y", (d) => 60 + (d.layer - 1) * 90 + 15)
-    .attr("style", "pointer-events: none;");
+  nodeEnter.append("text")
+    .attr("dy", "5")
+    .attr("x", d => - nodeHeight / 2)
+    .text(d => d.data.node);
+  // const link = treeViz.selectAll(".link")
+  //   .data(nodes.descendants().slice(1))
+  //   .enter().append("path")
+  //   .attr("class", "link")
+  //   .style("stroke", d => d.data.level)
+  //   .attr("d", d => {
+  //     return "M" + d.y + "," + d.x
+  //       + "C" + (d.y + d.parent.y) / 2 + "," + d.x
+  //       + " " + (d.y + d.parent.y) / 2 + "," + d.parent.x
+  //       + " " + d.parent.y + "," + d.parent.x;
+  //   });
 
-  // very special case where we want to draw node Q in the tree
-  if (drawQTree) {
-    const QNode = nodes
-      .filter(function(d) { return d.node == "Q" })
+    
+  treeViz.selectAll("path")
+  .data(nodes.links())
+  .enter().append("path")
+  .attr("fill", "none")
+  .attr("stroke", "black")
+  .attr("d", d3.linkHorizontal()
+    .source(function(d) { return [d.source.x, d.source.y + nodeHeight / 2]})
+    .target(function(d) { return [d.target.x, d.target.y - nodeHeight / 2]})
+  );
 
-    QNode.select("rect")
-      .attr("x", layer3X + 10.5 * nodeWidth)
-      .attr("y", 60 + 2 * 90 + nodeHeight + 2)
 
-    QNode.select("text")
-      .attr("x", layer3X + 10.5 * nodeWidth + 12)
-      .attr("y", 60 + 2 * 90 + nodeHeight + 15 + 2)
-  }
+  node.exit().remove();
+  treeViz.exit().remove();
+  // reset the canvas
+  // treeViz.html("");
+  // // construct the tree
+  // let nodes = treeViz
+  //   .selectAll("g")
+  //   .data(rtree)
+  //   .enter()
+  //   .append("g")
 
-  const arrowContainer = treeViz.append("g")
-    .attr("id", "treeVizArrowContainer");
+  // // draw boxes for each node
+  // nodes
+  //   .append("rect")
+  //   .attr("x", (d) => { 
+  //     let layerXConst = layer1X;
+  //     if (d.layer == 1) {
+  //       layerXConst = layer1X;
+  //     } else if (d.layer == 2) {
+  //       layerXConst = layer2X;
+  //     } else if (d.layer == 3) {
+  //       layerXConst = layer3X;
+  //     }
+  //     return layerXConst + (d.order - 1) * nodeWidth;
+  //   })
+  //   .attr("y", (d) => 60 + (d.layer - 1) * 90)
+  //   .attr("width", nodeWidth)
+  //   .attr("height", nodeHeight)
+  //   .attr("class", (d) => {
+  //     if (!d.isGap) return "treeNode";
+  //     return "";
+  //   })
+  //   .attr("fill", (d) => {
+  //     if (d.fill) return d.fill;
+  //     if (d.isGap) return "none";
+  //     return lightgray;
+  //   })
+  //   .attr("style", (d) => {
+  //     if (d.isGap) return "";
+  //     return `outline: 2px solid ${gray};`
+  //   })
+  //   .on('mouseover', (d, i) => {
+  //     if (!i.isGap) {
+  //       currentHoveredNode = i.node;
+  //       onNodeHover(i);
+  //     }
+  //   })
+  //   .on('mouseout', (d, i) => {
+  //     if (!i.isGap) {
+  //       currentHoveredNode = null;
+  //       onNodeUnhover(i);
+  //     }
+  //   });
+  
+  // // draw text for each node
+  // nodes
+  //   .append("text")
+  //   .text((d) => { 
+  //     if (d.node) return d.node;
+  //     return "";
+  //   })
+  //   .attr("x", (d) => { 
+  //     let layerXConst = layer1X;
+  //     if (d.layer == 1) {
+  //       layerXConst = layer1X;
+  //     } else if (d.layer == 2) {
+  //       layerXConst = layer2X;
+  //     } else if (d.layer == 3) {
+  //       layerXConst = layer3X;
+  //     }
+  //     return layerXConst + (d.order - 1) * nodeWidth + 10;
+  //   })
+  //   .attr("y", (d) => 60 + (d.layer - 1) * 90 + 15)
+  //   .attr("style", "pointer-events: none;");
 
-  for (let i = 0; i < links.length; i++) {
-    let link = d3.linkVertical()
-    .source(d => d.source)
-    .target(d => d.target);
+  // const arrowContainer = treeViz.append("g")
+  //   .attr("id", "treeVizArrowContainer");
 
-    arrowContainer
-    .selectAll("path")
-    .data(links)
-    .join("path")
-    .attr("d", link)
-    .attr("fill", "none")
-    .attr("stroke", (d) => d.highlight ? "darkgreen" : darkgray);
+  // for (let i = 0; i < links.length; i++) {
+  //   let link = d3.linkVertical()
+  //   .source(d => d.source)
+  //   .target(d => d.target);
 
-    arrowContainer.exit().remove();
-  }
+  //   arrowContainer
+  //   .selectAll("path")
+  //   .data(links)
+  //   .join("path")
+  //   .attr("d", link)
+  //   .attr("fill", "none")
+  //   .attr("stroke", (d) => d.highlight ? "darkgreen" : darkgray);
+
+  //   arrowContainer.exit().remove();
+  // }
 }
 
 // draw the cartesian/graph view of the r-tree. to the right
-function drawCartesianViz(rtree) {
+function drawCartesianViz(rtreeObj) {
+  const rtree = rtreeObj.all();
+
+  for (let i = 0; i < rtree.length; i++) {
+    let curNode = rtree[i];
+    curNode.width = curNode.maxX - curNode.minX;
+    curNode.height = curNode.maxY - curNode.minY;
+  }
+
   const cartesianViz = d3.select("#cartesianVizContainer");
   cartesianViz.html("");
 
@@ -483,10 +534,8 @@ function drawCartesianViz(rtree) {
   const cartesianObjectsContainer = cartesianViz
     .append("g");
 
-
   const scaleX = graphWidth / 20;
   const scaleY = graphHeight / 20;
-
 
   // construct the tree
   let nodes = cartesianObjectsContainer
@@ -497,8 +546,8 @@ function drawCartesianViz(rtree) {
 
   nodes
     .append("rect")
-    .attr("x", (d) => margin + d.x * scaleX)
-    .attr("y", (d) => margin + d.y * scaleY)
+    .attr("x", (d) => margin + d.minX * scaleX)
+    .attr("y", (d) => margin + d.minY * scaleY)
     .attr("width", (d) => d.width * scaleX)
     .attr("height",(d) => d.height * scaleY)
     .attr("fill", (d) => d.fill ? d.fill : "none")
@@ -526,25 +575,26 @@ function drawCartesianViz(rtree) {
     })
     .attr("x", (d) => {
       if (d.textPlacement == "bottom") {
-        return margin + d.x * scaleX + d.width * scaleX - 20;
+        return margin + d.minX * scaleX + d.width * scaleX - 20;
       }
-      return margin + d.x * scaleX + 5;
+      return margin + d.minX * scaleX + 5;
     })
     .attr("y", (d) => {
       if (d.textPlacement == "bottom") {
-        return margin + d.y * scaleY + d.height * scaleY - 5;
+        return margin + d.minY * scaleY + d.height * scaleY - 5;
       }
-      return margin + d.y * scaleY + 20;
+      return margin + d.minY * scaleY + 20;
     })
     .attr("style", "pointer-events: none;");
 
-  nodes.exit().remove();
+  let exitingNodes = nodes.exit()
+  exitingNodes.remove();
 }
 
-// event listeners for click events for the buttons at the top
+// // event listeners for click events for the buttons at the top
 function setupPlaybackController() {
-  d3.select(".playButton")
-    .on("click", () => handlePlayButton());
+//   d3.select(".playButton")
+//     .on("click", () => handlePlayButton());
 
   d3.select("#nextStepButton")
     .on("click", () => {
@@ -552,72 +602,72 @@ function setupPlaybackController() {
       stopPlayback();
     })
 
-  d3.select("#prevStepButton")
-    .on("click", () => {
-      decrementStep();
-      stopPlayback();
-    })
+//   d3.select("#prevStepButton")
+//     .on("click", () => {
+//       decrementStep();
+//       stopPlayback();
+//     })
 
-  d3.select("#resetStepButton")
-    .on("click", () => {
-      curStep = 1;
-      changeStep(curStep);
-      stopPlayback();
-    })
+//   d3.select("#resetStepButton")
+//     .on("click", () => {
+//       curStep = 1;
+//       changeStep(curStep);
+//       stopPlayback();
+//     })
 
-  d3.select("#lastStepButton")
-    .on("click", () => {
-      curStep = stepsArr.length;
-      changeStep(curStep);
-      stopPlayback();
-    })
+//   d3.select("#lastStepButton")
+//     .on("click", () => {
+//       curStep = stepsArr.length;
+//       changeStep(curStep);
+//       stopPlayback();
+//     })
 }
 
-// toggle play state 
-const handlePlayButton = () => {
-  playing = !playing;
+// // toggle play state 
+// const handlePlayButton = () => {
+//   playing = !playing;
   
-  if (playing) {
-    startPlayback();
-  } else {
-    stopPlayback();
-  }
-}
+//   if (playing) {
+//     startPlayback();
+//   } else {
+//     stopPlayback();
+//   }
+// }
 
-const isPlaybackFinished = () => {
-  return curStep == stepsArr.length;
-}
+// const isPlaybackFinished = () => {
+//   return curStep == stepsArr.length;
+// }
 
-const stopPlayback = () => {
-  d3.select(".playIcon").attr("style", "display: block");
-  d3.select(".pauseIcon").attr("style", "display: none");
+// const stopPlayback = () => {
+//   d3.select(".playIcon").attr("style", "display: block");
+//   d3.select(".pauseIcon").attr("style", "display: none");
 
-  clearInterval(playTimer);
-  playTimer = null;
-  playing = false;
-}
+//   clearInterval(playTimer);
+//   playTimer = null;
+//   playing = false;
+// }
 
-const startPlayback = () => {
-  if (isPlaybackFinished()) return;
-  d3.select(".playIcon").attr("style", "display: none");
-  d3.select(".pauseIcon").attr("style", "display: block");
+// const startPlayback = () => {
+//   if (isPlaybackFinished()) return;
+//   d3.select(".playIcon").attr("style", "display: none");
+//   d3.select(".pauseIcon").attr("style", "display: block");
 
-  playTimer = setInterval(() => {
-    if (curStep == stepsArr.length) {
-      stopPlayback();
-    }
-    incrementStep()
-  }, 2000);
-  playing = true;
-}
+//   playTimer = setInterval(() => {
+//     if (curStep == stepsArr.length) {
+//       stopPlayback();
+//     }
+//     incrementStep()
+//   }, 2000);
+//   playing = true;
+// }
 
 
-function decrementStep() {
-  if (curStep > 1) {
-    curStep -= 1;
-    changeStep(curStep);
-  }
-}
+// function decrementStep() {
+//   if (curStep > 1) {
+//     curStep -= 1;
+//     changeStep(curStep);
+//   }
+// }
 
 function incrementStep() {
   if (curStep < stepsArr.length) {
@@ -627,49 +677,23 @@ function incrementStep() {
 }
 
 // draws the visualization based on the data passed to it.
-function draw(treeArr, cartesianArr, arrowArr, drawQTree = false, drawQPolygon = false) {
-  drawTreeViz(treeArr, arrowArr, drawQTree);
-  drawCartesianViz(cartesianArr, drawQPolygon);
+function draw(treeArr, cartesianArr) {
+  drawTreeViz(treeArr);
+  drawCartesianViz(cartesianArr);
 }
 
 // updates the visualization to a certain step. 
 function changeStep(step) {
   let curStep = step - 1; // step 1 is index 0 in the arr
 
-  // get the data about this step from the step array.
-  const { 
-    stepText, 
-    tree: treeSettings, 
-    arrow: arrSettings,
-    drawQTree,
-    drawQPolygon,
-  } = stepsArr[curStep];
-
-  // update the step text
-  d3.select(".step-text").html(
-    `Step ${step}: ${stepText}`
-  )
-
-  // update the tree/cartesian arrays using the info about this step
-  const treeArr = getTreeArr(treeSettings);
-  const arrowArr = getArrowArr(arrSettings);
-
+  // update the tree/cartesian arrays using the info
   // update the visualization 
-  draw(treeArr,rtreeHistory[0],arrowArr,drawQTree,drawQPolygon);
+  draw(rtreeHistory[curStep],rtreeHistory[curStep]);
 }
 
 // draw the elements that won't have to change with the data, e.g the viz border
 function main() {
   const rCartesianBaseArr = [
-    // { node: "test", x: 1, y: 4, width: 8, height: 15, color: "red", highlight: true, fill: "none" , isNotHoverable: true},
-    { node: "R1", minX: 1, minY: 4, maxX: 9, maxY: 19},
-    { node: "R2", minX: 6, minY: 8, maxX: 19, maxY: 18},
-  
-    { node: "B1", minX: 1, minY: 14, maxX: 5, maxY: 19},
-    { node: "B2", minX: 4, minY: 4, maxX: 9, maxY: 11},
-    { node: "B3", minX: 6, minY: 15, maxX: 13, maxY: 19},
-    { node: "B4", minX: 15, minY: 8, maxX: 19, maxY: 15},
-  
     { node: "N1", minX: 1, minY: 16, maxX: 3, maxY: 19},
     { node: "N2", minX: 5, minY: 14, maxX: 5.1, maxY: 14.1}, // point
     { node: "N3", minX: 4, minY: 4, maxX: 6, maxY: 8},
@@ -686,11 +710,16 @@ function main() {
   let rbushe = new rbush(3);
   for (const obj of rCartesianBaseArr) {
     rbushe.insert(obj);
-    rtreeHistory.push(structuredClone(rbushe.data));
+
+    // creates a copy of the rtree, at this state, and store it in a history
+    let tempRTree = new rbush(3);
+    tempRTree.data = structuredClone(rbushe.data);
+    tempRTree._maxEntries = rbushe._maxEntries;
+    tempRTree._minEntries = rbushe._minEntries;
+    rtreeHistory.push(tempRTree);
   }
-  console.log('hist', rtreeHistory);
+
   console.log(rbushe.data);
-  console.log(rbushe.all())
 
 
   // container for the entire component
@@ -723,7 +752,7 @@ function main() {
 
   setupPlaybackController();
 
-  changeStep(1); 
+  changeStep(curStep); 
 }
 
 main();
