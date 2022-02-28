@@ -116,8 +116,6 @@ function drawTreeViz(source) {
   let nodes = root.descendants();
   let links = root.links();
 
-  console.log(links);
-
   tree(root);
 
   const node = treeViz.selectAll(".treeNode")
@@ -343,6 +341,8 @@ function findStepClicked(id) {
   const curNode = rtreeInsertionOrder[id];
   const curTree = cloneTree(rtreeHistory[id]);
 
+  console.log(curNode, curTree);
+
   const subtreePath = curTree.getBestSubtree(curNode);
 
   let curPath = curTree.data;
@@ -563,7 +563,10 @@ function main() {
 
   // empty tree
   let tempRTree = new rbush(RTREE_MAX_ENTRIES);
+  console.log(tempRTree);
   tempRTree.data = {
+    children: [],
+    leaf: true,
     height: 0,
     width: 0,
     maxX: 9999,
