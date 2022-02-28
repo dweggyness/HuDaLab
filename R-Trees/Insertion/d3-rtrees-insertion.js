@@ -234,10 +234,8 @@ function setupCartesianViz() {
 const effectiveCartesianVizHeight = cartesianVizHeight - margin * 2;
 
 // draw the cartesian/graph view of the r-tree. to the right
-function drawCartesianViz(rtreeObj) {
-  let rtree = rtreeObj.allIncludingNonLeaf();
-  rtree.push(rtreeObj.data); // include the root
-
+function drawCartesianViz(rtreeArr) {
+  const rtree = rtreeArr;
   // run some preprocessing for every node
   for (let i = 0; i < rtree.length; i++) {
     let curNode = rtree[i];
@@ -264,9 +262,9 @@ function drawCartesianViz(rtreeObj) {
     .append("g")
     .attr("class", "cartesianNode")
 
-
   nodeEnter.append("text")
     .text((d) => { 
+      if (d.notVisible) return "";
       if (d.node) return d.node;
       return "";
     })
@@ -283,15 +281,52 @@ function drawCartesianViz(rtreeObj) {
       return margin + d.minY * scaleY + 20;
     })
     .attr("style", "pointer-events: none;");
-
     
   nodeEnter.append("rect")
-  .attr("x", (d) => margin + d.minX * scaleX)
-  .attr("y", (d) => margin + d.minY * scaleY)
-  .attr("width", (d) => d.width * scaleX)
-  .attr("height",(d) => d.height * scaleY)
-  .attr("fill", (d) => 'none')
-  .attr("style", `outline: 1px solid black; fill-opacity: 0.5`);
+    .attr("x", (d) => margin + d.minX * scaleX)
+    .attr("y", (d) => margin + d.minY * scaleY)
+    .attr("width", (d) => d.width * scaleX)
+    .attr("height",(d) => d.height * scaleY)
+    .attr("fill", (d) => 'none')
+    .attr("style", (d) => 
+      d.notVisible 
+        ? `outline: 0px`
+        : `outline: 1px solid ${d.highlight ? 'red' : 'black'}; fill-opacity: 0.5`
+    );
+
+  nodeEnter.append("svg:image")
+    .attr("x", (d) => margin + d.minX * scaleX)
+    .attr("y", (d) => margin + d.minY * scaleY)
+    .attr("class", "cartesianPolygon")
+    .attr("width", (d) => d.width * scaleX)
+    .attr("height",(d) => d.height * scaleY)
+    .attr("xlink:href", (d) => d.polygon)
+    .attr("preserveAspectRatio", "none")
+    .attr("style", (d) => 
+      d.drawPolygon ? `object-fit: fill; opacity: 0.3; display: block` : `display: none`
+    );
+
+  // update
+  node.select('text')
+  .text((d) => { 
+      if (d.notVisible) return "";
+      if (d.node) return d.node;
+      return "";
+    })
+
+  node.select("rect")
+    .attr("x", (d) => margin + d.minX * scaleX)
+    .attr("y", (d) => margin + d.minY * scaleY)
+    .attr("style", (d) => 
+      d.notVisible 
+        ? `outline: 0px`
+        : `outline: 1px solid ${d.highlight ? 'red' : 'black'}; fill-opacity: 0.5`
+    );
+
+  node.select(".cartesianPolygon")
+    .attr("style", (d) => 
+      d.drawPolygon ? `preserveAspectRatio: none; object-fit: fill; opacity: 0.3; display: block` : `display: none`
+  );
 
   node.exit().remove();
 }
@@ -306,9 +341,16 @@ function drawCartesianViz(rtreeObj) {
 // that are in a future state to be gray
 function updateButtonStates(id, type) {
   let findID = id;
+  let bboxID = id;
   let nodeID = id;
 
-  if (type === 'find') nodeID--;
+  if (type === 'find') {
+    nodeID--;
+  }
+  if (type === 'bbox') {
+    nodeID--;
+    findID--;
+  }
 
   // update FIND buttons
   // color all find nodes before this one ( incl this one ) blue
@@ -316,10 +358,18 @@ function updateButtonStates(id, type) {
     rtreeSteps[i].subSteps.find = true;
   }
   // color all nodes after this gray
-  for (let i = id + 1; i < rtreeSteps.length; i++ ) {
+  for (let i = findID + 1; i < rtreeSteps.length; i++ ) {
     rtreeSteps[i].subSteps.find = false;
   }
 
+  // update BBOX buttons
+  for (let i = 0; i <= bboxID; i++ ) {
+    rtreeSteps[i].subSteps.bbox = true;
+  }
+  // color all nodes after this gray
+  for (let i = bboxID + 1; i < rtreeSteps.length; i++ ) {
+    rtreeSteps[i].subSteps.bbox = false;
+  }
   
   // update NODE buttons
   // color all nodes before this one ( incl this one ) blue
@@ -331,20 +381,40 @@ function updateButtonStates(id, type) {
     rtreeSteps[i].color = lightgray;
   }
 
+
+}
+
+// draw a polygon for the current node to be inserted
+function bboxStepClicked(id) {
+  updateButtonStates(id, 'bbox');
+
+  const curTree = cloneTree(rtreeHistory[id]);
+  const curNode = rtreeInsertionOrder[id];
+  
+  console.log(curTree);
+  
+  // set up the cartesianViz to look like the state (id - 1)
+  let cartesianArr = curTree.allIncludingNonLeaf();
+  cartesianArr.push(curTree.data); // include the root
+
+  // append just the new node to be inserted
+  // but hide the rect, and draw the polygon instead
+  cartesianArr.push({...curNode, highlight: true, drawPolygon: true});
+
+  drawViz(curTree, cartesianArr);
 }
 
 function findStepClicked(id) {
   updateButtonStates(id, 'find');
 
-  // update the data of all nodes that is in the path of the _chooseSubtree function
-  // to be colored
   const curNode = rtreeInsertionOrder[id];
   const curTree = cloneTree(rtreeHistory[id]);
 
-  console.log(curNode, curTree);
 
   const subtreePath = curTree.getBestSubtree(curNode);
 
+  // update the data of all nodes that is in the path of the _chooseSubtree function
+  // to be colored
   let curPath = curTree.data;
   for (let i = 0; i < subtreePath.length; i++) {
     const curSubpath = subtreePath[i];
@@ -357,8 +427,17 @@ function findStepClicked(id) {
       curPath.stroke = "#04a700"
     }
   }
+
+  // set up the cartesianViz to look like the state (id - 1)
+  let cartesianArr = curTree.allIncludingNonLeaf();
+  cartesianArr.push(curTree.data); // include the root
+
+  // append just the new node to be inserted 
+  // without using the rbush's insert function ( so the bounding box of parents is not drawn )
+  cartesianArr.push({ ...curNode, highlight: true });
+
   // redraw the viz with the new data
-  drawViz(curTree)
+  drawViz(curTree, cartesianArr);
 }
 
 // a node step is clicked, e.g "N1"/"N2"
@@ -372,6 +451,8 @@ function fullStepClicked(id) {
 // draw the steps on the left, clickable to bring the viz to that specific state
 function drawSteps() {
   const stepsContainer = d3.select("#stepsContainer");
+  const stepHGap = 10;
+  const stepVGap = 15;
 
   // full steps
   const node = stepsContainer.selectAll(".stepNode")
@@ -383,7 +464,7 @@ function drawSteps() {
 
   stepNode.append("rect")
     .attr("x", stepsWidth - margin - nodeWidth)
-    .attr("y", (d, i) => (15 + nodeHeight )* i)
+    .attr("y", (d, i) => (stepVGap + nodeHeight )* i)
     .attr("width", nodeWidth)
     .attr("height", nodeHeight)
     .attr("fill", (d) => d.color || lightgray)
@@ -397,7 +478,7 @@ function drawSteps() {
 
   stepNode.append("text")
     .attr("x", stepsWidth - margin - (nodeWidth / 2) - 9)
-    .attr("y", (d, i) => (15 + nodeHeight ) * i)
+    .attr("y", (d, i) => (stepVGap + nodeHeight ) * i)
     .attr("dy", ".92em")
     .text(d => {
       return d.node;
@@ -412,6 +493,42 @@ function drawSteps() {
     
   node.exit().remove();
 
+  // bbox steps
+
+  const bboxNode = stepsContainer.selectAll(".bboxStep")
+    .data(rtreeSteps, function(d) { return d.node; })
+  
+  const bboxNodeEnter = node.enter()
+    .append("g")
+    .attr("class", "bboxStep")
+
+  bboxNodeEnter.append("rect")
+    .attr("x", 0)
+    .attr("y", (d, i) => (stepVGap + nodeHeight )* i)
+    .attr("width", nodeWidth)
+    .attr("height", nodeHeight)
+    .attr("fill", (d) => d.subSteps.bbox ?  "skyblue" : lightgray)
+    .attr("stroke", darkgray)
+    .attr("style", "cursor: pointer")
+    .on("click", (d, obj) => {
+      bboxStepClicked(obj.id);
+      drawSteps();
+    })
+    .transition()
+
+  bboxNodeEnter.append("text")
+    .attr("x", 2)
+    .attr("y", (d, i) => (stepVGap + nodeHeight ) * i)
+    .attr("dy", ".92em")
+    .text("bbox")
+    .attr("style", "pointer-events: none;");
+
+
+  bboxNode.select("rect")
+    .attr("fill", (d) => d.subSteps.bbox ?  "skyblue" : lightgray)
+    
+  bboxNode.exit().remove();
+
   // find steps
 
   const findNode = stepsContainer.selectAll(".findNode")
@@ -422,8 +539,8 @@ function drawSteps() {
     .attr("class", "findNode")
 
   findNodeEnter.append("rect")
-    .attr("x", 0)
-    .attr("y", (d, i) => (15 + nodeHeight )* i)
+    .attr("x", stepHGap + nodeWidth)
+    .attr("y", (d, i) => (stepVGap + nodeHeight )* i)
     .attr("width", nodeWidth)
     .attr("height", nodeHeight)
     .attr("fill", (d) => d.subSteps.find ?  "skyblue" : lightgray)
@@ -436,7 +553,7 @@ function drawSteps() {
     .transition()
 
   findNodeEnter.append("text")
-    .attr("x", 4)
+    .attr("x", stepHGap + nodeWidth + 4)
     .attr("y", (d, i) => (15 + nodeHeight ) * i)
     .attr("dy", ".92em")
     .text("find")
@@ -510,11 +627,22 @@ function drawSteps() {
 
 // draws the visualization based on the data passed to it.\
 // rtree: RBush object
-function drawViz(rtree = rtreeHistory[curStep]) {
+// optional cartesianArr, containing the rectangles to be drawn in the cartesian view.
+// if empty, will construct one from the {rtree}
+function drawViz(rtree = rtreeHistory[curStep], cartesianArr) {
   root = createRoot(rtree.data);
 
   drawTreeViz(rtree);
-  drawCartesianViz(rtree)
+
+  if (cartesianArr) {
+    drawCartesianViz(cartesianArr);
+  } else {
+    let rtreeArr = rtree.allIncludingNonLeaf();
+    rtreeArr.push(rtree.data); // include the root
+  
+    drawCartesianViz(rtreeArr)
+  }
+
 }
 
 
@@ -530,16 +658,16 @@ function changeStep(step) {
 }
 
 const rtreeInsertionOrder = [
-  { node: "N1", id: 0, minX: 1, minY: 16, maxX: 3, maxY: 19},
-  { node: "N2", id: 1, minX: 5, minY: 14, maxX: 5.1, maxY: 14.1}, // point
-  { node: "N3", id: 2, minX: 4, minY: 4, maxX: 6, maxY: 8},
-  { node: "N4", id: 3, minX: 7, minY: 6, maxX: 7.1, maxY: 6.1},
-  { node: "N5", id: 4, minX: 5, minY: 9, maxX: 9, maxY: 11},
+  { node: "N1", id: 0, minX: 1, minY: 16, maxX: 3, maxY: 19, polygon: "./images/polygon-1.png"},
+  { node: "N2", id: 1, minX: 5, minY: 14, maxX: 5.1, maxY: 14.1, polygon: "./images/Point.png"}, // point
+  { node: "N3", id: 2, minX: 4, minY: 4, maxX: 6, maxY: 8, polygon: "./images/polygon-2.png"},
+  { node: "N4", id: 3, minX: 7, minY: 6, maxX: 7.1, maxY: 6.1, polygon: "./images/Point.png"},
+  { node: "N5", id: 4, minX: 5, minY: 9, maxX: 9, maxY: 11, polygon: "./images/polygon-3.png"},
 
-  { node: "N6", id: 5, minX: 6, minY: 15, maxX: 10, maxY: 17},
-  { node: "N7", id: 6, minX: 11, minY: 16, maxX: 13, maxY: 19},
+  { node: "N6", id: 5, minX: 6, minY: 15, maxX: 10, maxY: 17, polygon: "./images/polygon-4.png"},
+  { node: "N7", id: 6, minX: 11, minY: 16, maxX: 13, maxY: 19, polygon: "./images/polygon-5.png"},
 
-  { node: "N8", id: 7, minX: 19, minY: 15, maxX: 19.1, maxY: 15.1},
+  { node: "N8", id: 7, minX: 19, minY: 15, maxX: 19.1, maxY: 15.1, polygon: "./images/Point.png"},
 ]
 
 const rtreeSteps = structuredClone(rtreeInsertionOrder);
@@ -552,7 +680,10 @@ for (let obj of rtreeSteps) {
   }
 }
 rtreeSteps[0].color = "skyblue";
-rtreeSteps[0].subSteps.find = true;
+rtreeSteps[0].subSteps = {
+  find: true,
+  bbox: true,
+}
 
 
 const RTREE_MAX_ENTRIES = 3;
