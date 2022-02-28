@@ -44,7 +44,6 @@ const onNodeHover = (node) => {
   cartesianNode.select("rect")
     .transition()
     .attr("fill", "skyblue");
-  
 }
 
 // on node unhover, we reset the style of that node to its original state
@@ -88,10 +87,10 @@ function createRoot(data) {
 
 // returns a 'unique' key for a RBush data object
 // *known to be unique for our specific input, may not work for all cases ( dups etc )
-function getKey(node) {
-  const { node: name, maxX, maxY, minX, minY } = node;
-  if (name) {
-    return name + "-" + maxX + "-" + maxY + "-" + minX + "-" + minY;
+function getKey(obj) {
+  const { node, maxX, maxY, minX, minY } = obj;
+  if (node) {
+    return node + "-" + maxX + "-" + maxY + "-" + minX + "-" + minY;
   }
   return maxX + "-" + maxY + "-" + minX + "-" + minY;
 }
@@ -109,10 +108,8 @@ function drawTreeViz(source) {
 
   tree(root);
 
-  // treemap.separation((a, b) => (a.parent == b.parent ? 1 : 2) / 3);
   const node = treeViz.selectAll(".treeNode")
     .data(nodes, function(d) { return d.id; });
-  
 
   const nodeEnter = node.enter()
     .append("g")
@@ -292,7 +289,6 @@ function drawCartesianViz(rtreeObj) {
 
 
 function findStepClicked(id) {
-  if (id < 0 || id >= rtreeSteps.length) return; // error check
 
   // color all find nodes before this one ( incl this one ) blue
   for (let i = 0; i <= id; i++ ) {
@@ -308,7 +304,6 @@ function findStepClicked(id) {
 // a node step is clicked, e.g "N1"/"N2"
 // id = index of the node
 function fullStepClicked(id) {
-  if (id < 0 || id >= rtreeSteps.length) return; // error check
 
   // color all nodes before this one ( incl this one ) blue
   for (let i = 0; i <= id; i++ ) {
@@ -342,6 +337,7 @@ function drawSteps() {
     .attr("height", nodeHeight)
     .attr("fill", (d) => d.color || lightgray)
     .attr("stroke", darkgray)
+    .attr("style", "cursor: pointer")
     .on("click", (d, obj) => {
       fullStepClicked(obj.id);
       findStepClicked(obj.id); // propagate to the substeps of this node
@@ -382,6 +378,7 @@ function drawSteps() {
     .attr("height", nodeHeight)
     .attr("fill", (d) => d.subSteps.find ?  "skyblue" : lightgray)
     .attr("stroke", darkgray)
+    .attr("style", "cursor: pointer")
     .on("click", (d, obj) => {
       fullStepClicked(obj.id - 1);
       findStepClicked(obj.id);
@@ -477,22 +474,25 @@ function incrementStep() {
   }
 }
 
-// draws the visualization based on the data passed to it.
-function draw(treeArr, cartesianArr) {
-  drawTreeViz(treeArr);
-  drawCartesianViz(cartesianArr);
+// draws the visualization based on the data passed to it.\
+// rtree: RBush object
+function drawViz(rtree = rtreeHistory[curStep]) {
+  root = createRoot(rtree.data);
+
+  drawTreeViz(rtree);
+  drawCartesianViz(rtree)
 }
 
 
 // updates the visualization to a certain step. 
 function changeStep(step) {
-  let curStep = step - 1; // step 1 is index 0 in the arr
+  if (step >= 0 && step <= rtreeHistory.length) {
+    curStep = step; // step 1 is index 0 in the arr
+  }
 
   // update the tree/cartesian arrays using the info
   // update the visualization 
-  
-  root = createRoot(rtreeHistory[curStep].data);
-  draw(rtreeHistory[curStep],rtreeHistory[curStep]);
+  drawViz(rtreeHistory[curStep])
 }
 
 const rtreeInsertionOrder = [
@@ -524,13 +524,27 @@ rtreeSteps[0].subSteps.find = true;
 
 // draw the elements that won't have to change with the data, e.g the viz border
 function main() {
+  const RTREE_MAX_ENTRIES = 3;
 
-  let rbushe = new rbush(3);
+  let rbushe = new rbush(RTREE_MAX_ENTRIES);
+
+  // empty tree
+  let tempRTree = new rbush(RTREE_MAX_ENTRIES);
+  tempRTree.data = {
+    height: 0,
+    width: 0,
+    maxX: 9999,
+    maxY: 9999,
+    minX: 9999,
+    minY: 999,
+  }
+  rtreeHistory.push(tempRTree);
+
   for (const obj of rtreeInsertionOrder) {
     rbushe.insert(obj);
 
     // creates a copy of the rtree, at this state, and store it in a history
-    let tempRTree = new rbush(3);
+    let tempRTree = new rbush(RTREE_MAX_ENTRIES);
     tempRTree.data = structuredClone(rbushe.data);
     tempRTree._maxEntries = rbushe._maxEntries;
     tempRTree._minEntries = rbushe._minEntries;
