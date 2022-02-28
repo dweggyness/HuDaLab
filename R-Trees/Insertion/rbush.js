@@ -301,7 +301,8 @@ rbush.prototype = {
 
             node = targetNode || node.children[0];
         }
-
+        
+        console.log('yo', path);
         return node;
     },
 
