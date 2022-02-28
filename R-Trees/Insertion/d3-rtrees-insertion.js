@@ -58,7 +58,7 @@ const onNodeUnhover = (node) => {
   // reset colour of the node, now that it is unhovered
   treeNode.select("rect")
     .transition()
-    .attr("fill", lightgray )
+    .attr("fill", (d) => d.data.fill || lightgray )
 
   cartesianNode.select("rect")
     .transition()
@@ -95,6 +95,16 @@ function getKey(obj) {
   return maxX + "-" + maxY + "-" + minX + "-" + minY;
 }
 
+
+// returns a deep cloned object of the tree
+function cloneTree(rtree) {
+  let tempRTree = new rbush(RTREE_MAX_ENTRIES);
+  tempRTree.data = structuredClone(rtree.data);
+  tempRTree._maxEntries = rtree._maxEntries;
+  tempRTree._minEntries = rtree._minEntries;
+  return tempRTree;
+}
+
 const nodeHeight = 17;
 const nodeWidth = 34;
 
@@ -105,6 +115,8 @@ function drawTreeViz(source) {
 
   let nodes = root.descendants();
   let links = root.links();
+
+  console.log(links);
 
   tree(root);
 
@@ -119,7 +131,7 @@ function drawTreeViz(source) {
     .attr("width", nodeWidth)
     .attr("height", nodeHeight)
     .attr("class", "treeRect")
-    .attr("fill", (d) => lightgray)
+    .attr("fill", (d) => d.data.fill || lightgray)
     .attr("stroke", darkgray)
     .on('mouseover', (d, i) => {
       onNodeHover(i);
@@ -163,12 +175,17 @@ function drawTreeViz(source) {
       return `translate(${d.x}, ${d.y})`
   });
 
+  node.select("rect")
+    .attr("fill", (d) => {
+      return d.data.fill || lightgray
+    })
+
   const arrows = treeViz.selectAll("path").data(links);
   // arrows
   arrows.enter()
   .append("path")
   .attr("fill", "none")
-  .attr("stroke", "black")
+  .attr("stroke", (d) => d.target.data.stroke || "black")
   .attr("d", d3.linkHorizontal()
     .source(function(d) { return [d.source.x, d.source.y + nodeHeight / 2]})
     .target(function(d) { return [d.target.x, d.target.y - nodeHeight / 2]})
@@ -177,6 +194,7 @@ function drawTreeViz(source) {
   // update
   arrows
   .transition()
+  .attr("stroke", (d) => d.target.data.stroke || "black")
   .attr("d", d3.linkHorizontal()
     .source(function(d) { return [d.source.x, d.source.y + nodeHeight / 2]})
     .target(function(d) { return [d.target.x, d.target.y - nodeHeight / 2]})
@@ -274,9 +292,8 @@ function drawCartesianViz(rtreeObj) {
   .attr("y", (d) => margin + d.minY * scaleY)
   .attr("width", (d) => d.width * scaleX)
   .attr("height",(d) => d.height * scaleY)
-  .attr("fill", 'none')
+  .attr("fill", (d) => 'none')
   .attr("style", `outline: 1px solid black; fill-opacity: 0.5`);
-
 
   node.exit().remove();
 }
@@ -287,33 +304,67 @@ function drawCartesianViz(rtreeObj) {
 // @@@@@@@@@@@@@@@@@@@@@@@
 // steps viz
 
+// colors all the nodes that are in a past state to be blue, and colors all nodes
+// that are in a future state to be gray
+function updateButtonStates(id, type) {
+  let findID = id;
+  let nodeID = id;
 
-function findStepClicked(id) {
+  if (type === 'find') nodeID--;
 
+  // update FIND buttons
   // color all find nodes before this one ( incl this one ) blue
-  for (let i = 0; i <= id; i++ ) {
+  for (let i = 0; i <= findID; i++ ) {
     rtreeSteps[i].subSteps.find = true;
   }
-
   // color all nodes after this gray
   for (let i = id + 1; i < rtreeSteps.length; i++ ) {
     rtreeSteps[i].subSteps.find = false;
   }
+
+  
+  // update NODE buttons
+  // color all nodes before this one ( incl this one ) blue
+  for (let i = 0; i <= nodeID; i++ ) {
+    rtreeSteps[i].color = "skyblue";
+  }
+  // color all nodes after this gray
+  for (let i = nodeID + 1; i < rtreeSteps.length; i++ ) {
+    rtreeSteps[i].color = lightgray;
+  }
+
+}
+
+function findStepClicked(id) {
+  updateButtonStates(id, 'find');
+
+  // update the data of all nodes that is in the path of the _chooseSubtree function
+  // to be colored
+  const curNode = rtreeInsertionOrder[id];
+  const curTree = cloneTree(rtreeHistory[id]);
+
+  const subtreePath = curTree.getBestSubtree(curNode);
+
+  let curPath = curTree.data;
+  for (let i = 0; i < subtreePath.length; i++) {
+    const curSubpath = subtreePath[i];
+    if (i == 0) { // first subtree path is always the root
+      curPath.fill = "#99cc66";
+      curPath.stroke = "#04a700"
+    } else { // look in the children
+      curPath = curPath.children.find((x) => x.id === curSubpath.id);
+      curPath.fill = "#99cc66";
+      curPath.stroke = "#04a700"
+    }
+  }
+  // redraw the viz with the new data
+  drawViz(curTree)
 }
 
 // a node step is clicked, e.g "N1"/"N2"
 // id = index of the node
 function fullStepClicked(id) {
-
-  // color all nodes before this one ( incl this one ) blue
-  for (let i = 0; i <= id; i++ ) {
-    rtreeSteps[i].color = "skyblue";
-  }
-
-  // color all nodes after this gray
-  for (let i = id + 1; i < rtreeSteps.length; i++ ) {
-    rtreeSteps[i].color = lightgray;
-  }
+  updateButtonStates(id, 'node');
 
   changeStep(id + 1);
 }
@@ -340,7 +391,6 @@ function drawSteps() {
     .attr("style", "cursor: pointer")
     .on("click", (d, obj) => {
       fullStepClicked(obj.id);
-      findStepClicked(obj.id); // propagate to the substeps of this node
       drawSteps();
     })
     .transition()
@@ -380,7 +430,6 @@ function drawSteps() {
     .attr("stroke", darkgray)
     .attr("style", "cursor: pointer")
     .on("click", (d, obj) => {
-      fullStepClicked(obj.id - 1);
       findStepClicked(obj.id);
       drawSteps();
     })
@@ -459,21 +508,6 @@ function drawSteps() {
 //   playing = true;
 // }
 
-
-function decrementStep() {
-  if (curStep > 1) {
-    curStep -= 1;
-    changeStep(curStep);
-  }
-}
-
-function incrementStep() {
-  if (curStep < rtreeInsertionOrder.length) {
-    curStep += 1;
-    changeStep(curStep);
-  }
-}
-
 // draws the visualization based on the data passed to it.\
 // rtree: RBush object
 function drawViz(rtree = rtreeHistory[curStep]) {
@@ -521,11 +555,10 @@ rtreeSteps[0].color = "skyblue";
 rtreeSteps[0].subSteps.find = true;
 
 
+const RTREE_MAX_ENTRIES = 3;
 
 // draw the elements that won't have to change with the data, e.g the viz border
 function main() {
-  const RTREE_MAX_ENTRIES = 3;
-
   let rbushe = new rbush(RTREE_MAX_ENTRIES);
 
   // empty tree
@@ -542,13 +575,9 @@ function main() {
 
   for (const obj of rtreeInsertionOrder) {
     rbushe.insert(obj);
-
-    // creates a copy of the rtree, at this state, and store it in a history
-    let tempRTree = new rbush(RTREE_MAX_ENTRIES);
-    tempRTree.data = structuredClone(rbushe.data);
-    tempRTree._maxEntries = rbushe._maxEntries;
-    tempRTree._minEntries = rbushe._minEntries;
-    rtreeHistory.push(tempRTree);
+    // creates a deep copy of the rtree, at this state, and store it in the history arr
+    const tree = cloneTree(rbushe);
+    rtreeHistory.push(tree);
   }
 
   // container for the entire component

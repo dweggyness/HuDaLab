@@ -180,6 +180,17 @@ rbush.prototype = {
         return this;
     },
 
+    // our own function to get the path to insert the node at
+    getBestSubtree: function (item) {
+      let bbox = this.toBBox(item),
+      insertPath = [];
+
+      // find the best node for accommodating the item, saving all nodes along the path too
+      var node = this._chooseSubtree(bbox, this.data, this.data.height - 1, insertPath);
+
+      return insertPath;
+    },
+
     toBBox: function (item) { return item; },
 
     compareMinX: compareNodeMinX,
@@ -302,7 +313,6 @@ rbush.prototype = {
             node = targetNode || node.children[0];
         }
         
-        console.log('yo', path);
         return node;
     },
 
