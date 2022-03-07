@@ -308,7 +308,7 @@ function BFT_vis() {
   document.getElementById("bft-container").appendChild(recomParamDiv);
   let recomText = document.createElement("p");
   recomText.innerHTML = '';
-  recomText.setAttribute("class", "btnText");
+  recomText.setAttribute("class", "buttonText");
   recomParamDiv.setAttribute("style", "padding-left:5px;");
   recomText.setAttribute("style", "margin:0;");
   document.getElementById("bft-recom-container").appendChild(recomText);
@@ -581,7 +581,7 @@ function BFT_vis() {
   });
 
   var sizeText = document.createElement("p");
-  sizeText.setAttribute("class", "btnText");
+  sizeText.setAttribute("class", "buttonText");
   sizeText.innerHTML = "Bloom filter size:";
   document.getElementById("bft-divIniSize").appendChild(sizeText);
   document.getElementById("bft-divIniSize").appendChild(userSize);
@@ -607,7 +607,7 @@ function BFT_vis() {
   });
 
   var hashText = document.createElement("p");
-  hashText.setAttribute("class", "btnText");
+  hashText.setAttribute("class", "buttonText");
   hashText.innerHTML = "# of hash functions:";
   document.getElementById("bft-divIniHash").appendChild(hashText);
   document.getElementById("bft-divIniHash").appendChild(userHash);
@@ -681,7 +681,7 @@ function BFT_vis() {
   });
 
   var numText = document.createElement("p");
-  numText.setAttribute("class", "btnText");
+  numText.setAttribute("class", "buttonText");
   numText.innerHTML = "# of values to insert:";
   document.getElementById("bft-divIniNum").appendChild(numText);
   document.getElementById("bft-divIniNum").appendChild(userNum);
@@ -755,7 +755,7 @@ function BFT_vis() {
   });
 
   var insertText = document.createElement("p");
-  insertText.setAttribute("class", "btnText");
+  insertText.setAttribute("class", "buttonText");
   insertText.innerHTML = "Add a value: ";
   document.getElementById("bft-divInsert").appendChild(insertText);
   document.getElementById("bft-divInsert").appendChild(userInsert);
@@ -1214,7 +1214,7 @@ function BFT_vis() {
     }
   });
   var findText = document.createElement("p");
-  findText.setAttribute("class", "btnText");
+  findText.setAttribute("class", "buttonText");
   findText.innerHTML = "Find a value: ";
   document.getElementById("bft-divFind").appendChild(findText);
   document.getElementById("bft-divFind").appendChild(userFind);
