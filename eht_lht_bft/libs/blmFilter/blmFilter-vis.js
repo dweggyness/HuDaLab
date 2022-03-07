@@ -319,12 +319,11 @@ function BFT_vis() {
   btnDiv1.setAttribute("class", "button-container");
   document.getElementById("bft-container").appendChild(btnDiv1);
 
-
   var svg = d3.select("#bft-container")
       .append("svg")
         // .attr("width", 600 + 'px')
         // .attr("height", 600 + 'px')
-        .attr("viewBox" , "0 0 900 600")
+        .attr("viewBox", [0, 0, width, height])
         // .attr("preserveAspectRatio","none")
         // .attr("width", width + margin.left + margin.right)
         // .attr("height", height + margin.top + margin.bottom)

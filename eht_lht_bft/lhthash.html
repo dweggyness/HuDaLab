@@ -1,5 +1,97 @@
-<div id="lht-container">
+<style>
+    svg text {
+      font-family: Helvetica Neue;
+      font-size: 11pt;
+    }
+    svg path {
+      fill:none;
+    }
+    #lht-container {
+      width:100%;
+    }
+    #eht-container {
+      width:100%;
+    }
+    #bft-container {
+      width:100%;
+    }
+    .section-title {
+      font-size: 14pt;
+    }
+    .button-container {
+      display: flex;
+    }
+    .btndiv {
+      display: flex;
+      flex-direction: row;
+      margin: 5px;
+    }
+    .btndiv input {
+      position: relative;
+      transform: translate(0, -50%);
+      top: 50%;
+      height: 15px;
+      width: 40px;
+    }
 
+    .textBtn:hover {
+      cursor: pointer;
+    }
+
+    .buttonText {
+      font-family: Helvetica Neue;
+      font-size: 10pt;
+      margin: 0;
+    }
+
+
+    @keyframes dash {
+      to {
+        stroke-dashoffset: 0;
+      }
+    }
+
+
+
+    .arrowAnimated {
+      stroke: red;
+      stroke-width: 2.5px;
+      stroke-dasharray: 200;
+      stroke-dashoffset: 200;
+      animation: dash 2s ease forwards;
+    }
+
+    .bBox {
+      rx:2;
+      ry:2;
+    }
+
+    .unclickedBBox {
+      stroke: none;
+      fill: #ececec;
+    }
+    .unclickedText {
+      stroke: none;
+      fill: #8c8c8c;
+    }
+    .clickedBBox {
+      stroke: none;
+      fill: #e0e9fa;
+    }
+    .clickedText {
+      stroke: none;
+      fill: #146396;
+    }
+
+</style>
+
+<meta charset="utf-8" http-equiv='cache-control' content='no-cache'>
+<script src="https://d3js.org/d3.v7.min.js"></script>
+
+<div>
+  <div id="lht-container">
+  
+  </div>
+  
+  <script type="text/javascript" src="libs/linhash/lht-vis.js"></script>
 </div>
-
-<script type="text/javascript" src="libs/linhash/lht-vis.js"></script>

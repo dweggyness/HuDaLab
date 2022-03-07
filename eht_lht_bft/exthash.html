@@ -1,52 +1,19 @@
-<!DOCTYPE html>
-<meta charset="utf-8">
 <style>
+    #canvas {
+/*   background-color: #d4d4d4; */
+    }
 
-<style>
-    svg text {
-      font-family: Helvetica Neue;
-      font-size: 11pt;
-    }
-    svg path {
-      fill:none;
-    }
-    #lht-container {
-      width:100%;
-    }
-    #eht-container {
-      width:100%;
-    }
-    #bft-container {
-      width:100%;
-    }
-    .section-title {
-      font-size: 14pt;
-    }
-    .button-container {
+    #button-container {
       display: flex;
-    }
-    .btndiv {
-      display: flex;
-      flex-direction: row;
-      margin: 5px;
-    }
-    .btndiv input {
-      position: relative;
-      transform: translate(0, -50%);
-      top: 50%;
-      height: 15px;
-      width: 40px;
     }
 
     .textBtn:hover {
       cursor: pointer;
     }
 
-    .btnText{
-      font-family: Helvetica Neue;
-      font-size: 10pt;
+    html {
+      font-family: sans-serif;
     }
-
 
     @keyframes dash {
       to {
@@ -54,7 +21,9 @@
       }
     }
 
-
+    path {
+      fill:none;
+    }
 
     .arrowAnimated {
       stroke: red;
@@ -67,6 +36,12 @@
     .bBox {
       rx:2;
       ry:2;
+    }
+
+    .buttonText {
+      font-family: Helvetica Neue;
+      font-size: 10pt;
+      margin: 0;
     }
 
     .unclickedBBox {
@@ -86,11 +61,18 @@
       fill: #146396;
     }
 
+    #container-1 {
+      height: 1600px;
+    }
 </style>
 
+<meta charset="utf-8" http-equiv='cache-control' content='no-cache'>
 <script src="https://d3js.org/d3.v7.min.js"></script>
-<div id="eht-container">
 
+<div>
+  <div id="eht-container">
+  
+  </div>
+  
+  <script type="text/javascript" src="libs/exthash/eht-vis.js"></script>
 </div>
-
-<script type="text/javascript" src="libs/exthash/eht-vis.js"></script>

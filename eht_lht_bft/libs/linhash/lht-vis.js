@@ -444,7 +444,7 @@ function LHT_vis() {
       .append("svg")
         // .attr("width", 600 + 'px')
         // .attr("height", 600 + 'px')
-        .attr("viewBox" , "0 0 900 600")
+        .attr("viewBox", [0, 0, width, height])
         // .attr("preserveAspectRatio","none")
         // .attr("width", width + margin.left + margin.right)
         // .attr("height", height + margin.top + margin.bottom)
@@ -748,7 +748,6 @@ function LHT_vis() {
   }
 
   function drawKeys(lht) {
-    console.log(lht);
     let bucketData = lht.buckets;
     // keys
     let keyGroup = keyPart
@@ -821,7 +820,6 @@ function LHT_vis() {
     let bucketData = lht.buckets;
     // buckets & values
     let flattedData = flatOutBuckets(bucketData);
-    console.log(flattedData);
 
     // set all old values bbox to be blue
     svg.selectAll(".valueBBox")
@@ -1273,7 +1271,6 @@ function LHT_vis() {
     for (var i = 0; i < tempData.length; i++) {
       let v = svg.select("#value" + tempData[i][1]);
       let g = v.select(function() { return this.parentNode; });
-      console.log(g);
       g.transition().attr("transform", "");
 
       svg.select("#value" + tempData[i][1]).transition()
@@ -1441,7 +1438,7 @@ function LHT_vis() {
   });
 
   var numText = document.createElement("p");
-  numText.setAttribute("class", "btnText");
+  numText.setAttribute("class", "buttonText");
   numText.innerHTML = "# of keys to insert:";
   document.getElementById("lht-divIniNum").appendChild(numText);
   document.getElementById("lht-divIniNum").appendChild(userNum);
@@ -1567,7 +1564,7 @@ function LHT_vis() {
   });
 
   var insertText = document.createElement("p");
-  insertText.setAttribute("class", "btnText");
+  insertText.setAttribute("class", "buttonText");
   insertText.innerHTML = "Add a key: ";
   document.getElementById("lht-divInsert").appendChild(insertText);
   document.getElementById("lht-divInsert").appendChild(userInsert);
@@ -1669,7 +1666,7 @@ function LHT_vis() {
     }
   });
   var findText = document.createElement("p");
-  findText.setAttribute("class", "btnText");
+  findText.setAttribute("class", "buttonText");
   findText.innerHTML = "Find a key: ";
   document.getElementById("lht-divFind").appendChild(findText);
   document.getElementById("lht-divFind").appendChild(userFind);

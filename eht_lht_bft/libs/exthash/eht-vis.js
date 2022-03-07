@@ -251,7 +251,7 @@ function EHT_vis() {
       .append("svg")
         // .attr("width", containerWidth + 'px')
         // .attr("height", 600 + 'px')
-        .attr("viewBox" , "0 0 900 600")
+        .attr("viewBox", [0, 0, width, height])
         // .attr("preserveAspectRatio","none")
         // .attr("width", width + margin.left + margin.right)
         // .attr("height", height + margin.top + margin.bottom)
@@ -327,7 +327,7 @@ function EHT_vis() {
     }
   });
   var numText = document.createElement("p");
-  numText.setAttribute("class", "btnText");
+  numText.setAttribute("class", "buttonText");
   numText.innerHTML = "# of keys to insert:";
   document.getElementById("eht-divIniNum").appendChild(numText);
   document.getElementById("eht-divIniNum").appendChild(userNum);
@@ -1034,7 +1034,7 @@ function EHT_vis() {
     }
   });
   var insertText = document.createElement("p");
-  insertText.setAttribute("class", "btnText");
+  insertText.setAttribute("class", "buttonText");
   insertText.innerHTML = "Add a key: ";
   document.getElementById("eht-divInsert").appendChild(insertText);
   document.getElementById("eht-divInsert").appendChild(userInsert);
@@ -1863,7 +1863,7 @@ function EHT_vis() {
     }
   });
   var findText = document.createElement("p");
-  findText.setAttribute("class", "btnText");
+  findText.setAttribute("class", "buttonText");
   findText.innerHTML = "Find a key: ";
   document.getElementById("eht-divFind").appendChild(findText);
   document.getElementById("eht-divFind").appendChild(userFind);
