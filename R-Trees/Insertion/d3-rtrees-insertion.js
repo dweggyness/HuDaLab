@@ -102,11 +102,62 @@ function cloneTree(rtree) {
   tempRTree.data = structuredClone(rtree.data);
   tempRTree._maxEntries = rtree._maxEntries;
   tempRTree._minEntries = rtree._minEntries;
+  tempRTree._lastExhaustiveSplit = rtree._lastExhaustiveSplit;
   return tempRTree;
 }
 
 const nodeHeight = 17;
 const nodeWidth = 34;
+
+function drawSplitFindControl(rtree) {
+  const arrowControlViz = d3.select('#controllerContainer');
+  console.log('drawSplit', rtree);
+
+  arrowControlViz.selectAll("*").remove();
+  if (rtree.didSplit) {
+    arrowControlViz.append("svg:image")
+      .attr("x", 110)
+      .attr("y", 420)
+      .attr("class", "arrow")
+      .attr("width", 20)
+      .attr("height", 30)
+      .attr("xlink:href", "./images/arrowLeft.png")
+      .attr("preserveAspectRatio", "none")
+      .attr("style", "object-fit: fill");
+  
+    arrowControlViz.append("svg:image")
+      .attr("x", 150)
+      .attr("y", 420)
+      .attr("class", "arrow")
+      .attr("width", 20)
+      .attr("height", 30)
+      .attr("xlink:href", "./images/arrowRight.png")
+      .attr("preserveAspectRatio", "none")
+      .attr("style", "object-fit: fill");
+  } else {
+    arrowControlViz.append("svg:image")
+      .attr("x", 110)
+      .attr("y", 420)
+      .attr("class", "arrow")
+      .attr("width", 20)
+      .attr("height", 30)
+      .attr("xlink:href", "./images/arrowLeft.png")
+      .attr("preserveAspectRatio", "none")
+      .attr("style", "object-fit: fill; opacity: 0.2");
+  
+    arrowControlViz.append("svg:image")
+      .attr("x", 150)
+      .attr("y", 420)
+      .attr("class", "arrow")
+      .attr("width", 20)
+      .attr("height", 30)
+      .attr("xlink:href", "./images/arrowRight.png")
+      .attr("preserveAspectRatio", "none")
+      .attr("style", "object-fit: fill; opacity: 0.2");
+    
+  }
+
+}
 
 function drawTreeViz(source) {
   const treeViz = d3.select("#treeVizContainer");
@@ -565,63 +616,6 @@ function drawSteps() {
 }
 
 
-// @@@@@@@@@@@@@@@@@@@@@@@
-// @@@@@@@@@@@@@@@@@@@@@@@
-// @@@@@@@@@@@@@@@@@@@@@@@
-
-
-
-//   d3.select("#resetStepButton")
-//     .on("click", () => {
-//       curStep = 1;
-//       changeStep(curStep);
-//       stopPlayback();
-//     })
-
-//   d3.select("#lastStepButton")
-//     .on("click", () => {
-//       curStep = stepsArr.length;
-//       changeStep(curStep);
-//       stopPlayback();
-//     })
-
-// // toggle play state 
-// const handlePlayButton = () => {
-//   playing = !playing;
-  
-//   if (playing) {
-//     startPlayback();
-//   } else {
-//     stopPlayback();
-//   }
-// }
-
-// const isPlaybackFinished = () => {
-//   return curStep == stepsArr.length;
-// }
-
-// const stopPlayback = () => {
-//   d3.select(".playIcon").attr("style", "display: block");
-//   d3.select(".pauseIcon").attr("style", "display: none");
-
-//   clearInterval(playTimer);
-//   playTimer = null;
-//   playing = false;
-// }
-
-// const startPlayback = () => {
-//   if (isPlaybackFinished()) return;
-//   d3.select(".playIcon").attr("style", "display: none");
-//   d3.select(".pauseIcon").attr("style", "display: block");
-
-//   playTimer = setInterval(() => {
-//     if (curStep == stepsArr.length) {
-//       stopPlayback();
-//     }
-//     incrementStep()
-//   }, 2000);
-//   playing = true;
-// }
 
 // draws the visualization based on the data passed to it.\
 // rtree: RBush object
@@ -631,6 +625,7 @@ function drawViz(rtree = rtreeHistory[curStep], cartesianArr) {
   root = createRoot(rtree.data);
 
   drawTreeViz(rtree);
+  drawSplitFindControl(rtree);
 
   if (cartesianArr) {
     drawCartesianViz(cartesianArr);
@@ -691,7 +686,6 @@ function main() {
 
   // empty tree
   let tempRTree = new rbush(RTREE_MAX_ENTRIES);
-  console.log(tempRTree);
   tempRTree.data = {
     children: [],
     leaf: true,
@@ -736,6 +730,11 @@ function main() {
     .append("g")
     .attr("transform", `translate(${margin}, ${margin})`)
     .attr("id", "stepsContainer")
+    
+  let controllerContainer = mainContainer
+    .append("g")
+    .attr("transform", `translate(${margin}, ${margin})`)
+    .attr("id", "controllerContainer")
 
   // container for viz part of component, incl tree viz and cartesian viz
   let vizContainer = mainContainer

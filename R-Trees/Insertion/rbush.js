@@ -11,7 +11,7 @@ function rbush(maxEntries, format) {
     // max entries in a node is 9 by default; min node fill is 40% for best performance
     this._maxEntries = Math.max(3, maxEntries || 9);
     this._minEntries = Math.max(1, Math.ceil(this._maxEntries * 0.4));
-    this.lastExhaustiveSplit = [];
+    this._lastExhaustiveSplit = [];
 
     if (format) {
         this._initFormat(format);
@@ -360,17 +360,18 @@ rbush.prototype = {
 
         var newNode;
 
-        this._chooseExhaustiveSplit(node, m, M);
+        this._getExhaustiveSplits(node, m, M);
 
 
         if (splitFunction === 'linear') {
-        this._chooseSplitAxis(node, m, M);
+          this._chooseSplitAxis(node, m, M);
 
-        var splitIndex = this._chooseSplitIndex(node, m, M);
+          var splitIndex = this._chooseSplitIndex(node, m, M);
 
           newNode = createNode(node.children.splice(splitIndex, node.children.length - splitIndex));
-        newNode.height = node.height;
-        newNode.leaf = node.leaf;
+          newNode.height = node.height;
+          newNode.leaf = node.leaf;
+
         } else if (splitFunction === 'exhaustive') {
           console.log("Exhaustive");
         }
@@ -382,13 +383,10 @@ rbush.prototype = {
         else this._splitRoot(node, newNode);
     },
 
-    _chooseExhaustiveSplit(node, m, M) {
+    _getExhaustiveSplits(node, m, M) {
       var overlap, area, minOverlap, minArea, index;
 
       let listOfSplits = [];
-
-      // console.log(this.data);
-      // console.log('splitting exhaustive', JSON.parse(JSON.stringify(node)), m, M);
 
       // for each combination of nodes
       for (let i = 0; i < M; i++) {
@@ -433,32 +431,28 @@ rbush.prototype = {
           listOfSplits.push({ bbox1, bbox2 });
 
 
-          overlap = intersectionArea(bbox1, bbox2);
-          area = bboxArea(bbox1) + bboxArea(bbox2);
+          // overlap = intersectionArea(bbox1, bbox2);
+          // area = bboxArea(bbox1) + bboxArea(bbox2);
 
-          // choose distribution with minimum overlap
-          if (overlap < minOverlap) {
-            minOverlap = overlap;
-            index = i;
+          // // choose distribution with minimum overlap
+          // if (overlap < minOverlap) {
+          //   minOverlap = overlap;
+          //   index = i;
 
-            minArea = area < minArea ? area : minArea;
-          } else if (overlap === minOverlap) {
-            // otherwise choose distribution with minimum area
-            if (area < minArea) {
-              minArea = area;
-              index = i;
-            }
-          }
+          //   minArea = area < minArea ? area : minArea;
+          // } else if (overlap === minOverlap) {
+          //   // otherwise choose distribution with minimum area
+          //   if (area < minArea) {
+          //     minArea = area;
+          //     index = i;
+          //   }
+          // }
 
         }
       }
 
-      this.lastExhaustiveSplit = listOfSplits;
-      return index;
-    },
-
-    _getExhaustiveSplits(node, m, M) {
-
+      this._lastExhaustiveSplit = [...listOfSplits];
+      // return index;
     },
 
     _splitRoot: function (node, newNode) {
