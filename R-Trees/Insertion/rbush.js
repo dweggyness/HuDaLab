@@ -11,6 +11,7 @@ function rbush(maxEntries, format) {
     // max entries in a node is 9 by default; min node fill is 40% for best performance
     this._maxEntries = Math.max(3, maxEntries || 9);
     this._minEntries = Math.max(1, Math.ceil(this._maxEntries * 0.4));
+    this.lastExhaustiveSplit = [];
 
     if (format) {
         this._initFormat(format);
@@ -122,7 +123,7 @@ rbush.prototype = {
     },
 
     insert: function (item) {
-        if (item) this._insert(item, this.data.height - 1);
+        if (item) return this._insert(item, this.data.height - 1);
         return this;
     },
 
@@ -290,6 +291,7 @@ rbush.prototype = {
 
             minArea = minEnlargement = Infinity;
 
+
             for (i = 0, len = node.children.length; i < len; i++) {
                 child = node.children[i];
                 area = bboxArea(child);
@@ -318,13 +320,14 @@ rbush.prototype = {
 
     _insert: function (item, level, isNode) {
 
+        var didSplit = false;
+
         var toBBox = this.toBBox,
             bbox = isNode ? item : toBBox(item),
             insertPath = [];
 
         // find the best node for accommodating the item, saving all nodes along the path too
         var node = this._chooseSubtree(bbox, this.data, level, insertPath);
-
         // put the item into the node
         node.children.push(item);
         extend(node, bbox);
@@ -332,6 +335,7 @@ rbush.prototype = {
         // split on node overflow; propagate upwards if necessary
         while (level >= 0) {
             if (insertPath[level].children.length > this._maxEntries) {
+                didSplit = true;
                 this._split(insertPath, level);
                 level--;
             } else break;
@@ -339,28 +343,122 @@ rbush.prototype = {
 
         // adjust bboxes along the insertion path
         this._adjustParentBBoxes(bbox, insertPath, level);
+        if (didSplit) {
+          return { split: true };
+        } else {
+          return {};
+        }
     },
 
     // split overflowed node into two
     _split: function (insertPath, level) {
+        let splitFunction = 'linear';
 
         var node = insertPath[level],
             M = node.children.length,
             m = this._minEntries;
 
+        var newNode;
+
+        this._chooseExhaustiveSplit(node, m, M);
+
+
+        if (splitFunction === 'linear') {
         this._chooseSplitAxis(node, m, M);
 
         var splitIndex = this._chooseSplitIndex(node, m, M);
 
-        var newNode = createNode(node.children.splice(splitIndex, node.children.length - splitIndex));
+          newNode = createNode(node.children.splice(splitIndex, node.children.length - splitIndex));
         newNode.height = node.height;
         newNode.leaf = node.leaf;
+        } else if (splitFunction === 'exhaustive') {
+          console.log("Exhaustive");
+        }
 
         calcBBox(node, this.toBBox);
         calcBBox(newNode, this.toBBox);
 
         if (level) insertPath[level - 1].children.push(newNode);
         else this._splitRoot(node, newNode);
+    },
+
+    _chooseExhaustiveSplit(node, m, M) {
+      var overlap, area, minOverlap, minArea, index;
+
+      let listOfSplits = [];
+
+      // console.log(this.data);
+      // console.log('splitting exhaustive', JSON.parse(JSON.stringify(node)), m, M);
+
+      // for each combination of nodes
+      for (let i = 0; i < M; i++) {
+        for (let j = i; j < M; j++) {
+          if (i == j) continue;
+          // create an empty node t
+          let destNode = createNode(null);
+          destNode.minX = Infinity;
+          destNode.minY = Infinity;
+          destNode.maxX = -Infinity;
+          destNode.maxY = -Infinity;
+          
+          // 
+          let bbox1 = createNode(null);
+          bbox1.minX = Infinity;
+          bbox1.minY = Infinity;
+          bbox1.maxX = -Infinity;
+          bbox1.maxY = -Infinity;
+
+          let splitNode1 = node.children[i];
+          let splitNode2 = node.children[j];
+          bbox1 = extend(bbox1, this.toBBox(splitNode1));
+          bbox1 = extend(bbox1, this.toBBox(splitNode2));
+          
+          let bbox2 = createNode(null);
+          bbox2.minX = Infinity;
+          bbox2.minY = Infinity;
+          bbox2.maxX = -Infinity;
+          bbox2.maxY = -Infinity;
+          
+          let remainingNodes = [];
+          for (let k = 0; k < M; k++) {
+            if (k === i || k === j) continue;
+            remainingNodes.push(k);
+          }
+
+          let splitNode3 = node.children[remainingNodes[0]];
+          let splitNode4 = node.children[remainingNodes[1]];
+          bbox2 = extend(bbox2, this.toBBox(splitNode3));
+          bbox2 = extend(bbox2, this.toBBox(splitNode4));
+
+          listOfSplits.push({ bbox1, bbox2 });
+
+
+          overlap = intersectionArea(bbox1, bbox2);
+          area = bboxArea(bbox1) + bboxArea(bbox2);
+
+          // choose distribution with minimum overlap
+          if (overlap < minOverlap) {
+            minOverlap = overlap;
+            index = i;
+
+            minArea = area < minArea ? area : minArea;
+          } else if (overlap === minOverlap) {
+            // otherwise choose distribution with minimum area
+            if (area < minArea) {
+              minArea = area;
+              index = i;
+            }
+          }
+
+        }
+      }
+
+      this.lastExhaustiveSplit = listOfSplits;
+      return index;
+    },
+
+    _getExhaustiveSplits(node, m, M) {
+
     },
 
     _splitRoot: function (node, newNode) {

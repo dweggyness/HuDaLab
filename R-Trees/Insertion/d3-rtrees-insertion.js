@@ -390,9 +390,7 @@ function bboxStepClicked(id) {
 
   const curTree = cloneTree(rtreeHistory[id]);
   const curNode = rtreeInsertionOrder[id];
-  
-  console.log(curTree);
-  
+
   // set up the cartesianViz to look like the state (id - 1)
   let cartesianArr = curTree.allIncludingNonLeaf();
   cartesianArr.push(curTree.data); // include the root
@@ -654,7 +652,7 @@ function changeStep(step) {
 
   // update the tree/cartesian arrays using the info
   // update the visualization 
-  drawViz(rtreeHistory[curStep])
+  drawViz(rtreeHistory[curStep]);
 }
 
 const rtreeInsertionOrder = [
@@ -685,7 +683,6 @@ rtreeSteps[0].subSteps = {
   bbox: true,
 }
 
-
 const RTREE_MAX_ENTRIES = 3;
 
 // draw the elements that won't have to change with the data, e.g the viz border
@@ -707,12 +704,26 @@ function main() {
   }
   rtreeHistory.push(tempRTree);
 
-  for (const obj of rtreeInsertionOrder) {
-    rbushe.insert(obj);
-    // creates a deep copy of the rtree, at this state, and store it in the history arr
+  for (let i = 0; i < rtreeInsertionOrder.length; i++ ) {
+    let insertNode = rtreeInsertionOrder[i];
+    let returnObj = rbushe.insert(insertNode);
+
     const tree = cloneTree(rbushe);
-    rtreeHistory.push(tree);
+    // index increased by 1, as there exists empty tree in index 0
+    rtreeHistory[i+1] = tree;
+
+    if (returnObj.split) { // rtree did a split in this insertion, mark this
+      rtreeHistory[i+1].didSplit = true;
+    }
   }
+
+  // for (const obj of rtreeInsertionOrder) {
+  //   console.log(obj);
+  //   let returnObj = rbushe.insert(obj);
+  //   // creates a deep copy of the rtree, at this state, and store it in the history arr
+  //   const tree = cloneTree(rbushe);
+  //   rtreeHistory.push(tree);
+  // }
 
   // container for the entire component
   let mainContainer = d3.select("#rtree-container")
