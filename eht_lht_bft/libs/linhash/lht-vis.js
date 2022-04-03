@@ -1439,7 +1439,7 @@ function LHT_vis() {
 
   var numText = document.createElement("p");
   numText.setAttribute("class", "buttonText");
-  numText.innerHTML = "# of keys to insert:";
+  numText.innerHTML = "# of keys to insert: &nbsp;";
   document.getElementById("lht-divIniNum").appendChild(numText);
   document.getElementById("lht-divIniNum").appendChild(userNum);
 
@@ -1565,7 +1565,7 @@ function LHT_vis() {
 
   var insertText = document.createElement("p");
   insertText.setAttribute("class", "buttonText");
-  insertText.innerHTML = "Add a key: ";
+  insertText.innerHTML = "Add a key: &nbsp;";
   document.getElementById("lht-divInsert").appendChild(insertText);
   document.getElementById("lht-divInsert").appendChild(userInsert);
 
@@ -1667,7 +1667,7 @@ function LHT_vis() {
   });
   var findText = document.createElement("p");
   findText.setAttribute("class", "buttonText");
-  findText.innerHTML = "Find a key: ";
+  findText.innerHTML = "Find a key: &nbsp;";
   document.getElementById("lht-divFind").appendChild(findText);
   document.getElementById("lht-divFind").appendChild(userFind);
 

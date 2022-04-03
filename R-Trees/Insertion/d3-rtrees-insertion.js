@@ -659,15 +659,15 @@ function changeStep(step) {
 
 const rtreeInsertionOrder = [
   { node: "N1", id: 0, minX: 1, minY: 16, maxX: 3, maxY: 19, polygon: "./images/polygon-1.png"},
-  { node: "N2", id: 1, minX: 5, minY: 14, maxX: 5.1, maxY: 14.1, polygon: "./images/Point.png"}, // point
+  { node: "N2", id: 1, minX: 3, minY: 12, maxX: 5, maxY: 14, polygon: "./images/polygon-4.png"}, // point
   { node: "N3", id: 2, minX: 4, minY: 4, maxX: 6, maxY: 8, polygon: "./images/polygon-2.png"},
-  { node: "N4", id: 3, minX: 7, minY: 6, maxX: 7.1, maxY: 6.1, polygon: "./images/Point.png"},
+  { node: "N4", id: 3, minX: 7, minY: 4, maxX: 8, maxY: 6, polygon: "./images/polygon-5.png"},
   { node: "N5", id: 4, minX: 5, minY: 9, maxX: 9, maxY: 11, polygon: "./images/polygon-3.png"},
 
   { node: "N6", id: 5, minX: 6, minY: 15, maxX: 10, maxY: 17, polygon: "./images/polygon-4.png"},
   { node: "N7", id: 6, minX: 11, minY: 16, maxX: 13, maxY: 19, polygon: "./images/polygon-5.png"},
 
-  { node: "N8", id: 7, minX: 19, minY: 15, maxX: 19.1, maxY: 15.1, polygon: "./images/Point.png"},
+  { node: "N8", id: 7, minX: 18, minY: 15, maxX: 19, maxY: 17, polygon: "./images/polygon-1.png"},
 ]
 
 const rtreeSteps = structuredClone(rtreeInsertionOrder);

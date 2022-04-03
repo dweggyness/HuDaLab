@@ -582,7 +582,7 @@ function BFT_vis() {
 
   var sizeText = document.createElement("p");
   sizeText.setAttribute("class", "buttonText");
-  sizeText.innerHTML = "Bloom filter size:";
+  sizeText.innerHTML = "Bloom filter size: &nbsp;";
   document.getElementById("bft-divIniSize").appendChild(sizeText);
   document.getElementById("bft-divIniSize").appendChild(userSize);
 
@@ -608,7 +608,7 @@ function BFT_vis() {
 
   var hashText = document.createElement("p");
   hashText.setAttribute("class", "buttonText");
-  hashText.innerHTML = "# of hash functions:";
+  hashText.innerHTML = "# of hash functions: &nbsp;";
   document.getElementById("bft-divIniHash").appendChild(hashText);
   document.getElementById("bft-divIniHash").appendChild(userHash);
 
@@ -682,7 +682,7 @@ function BFT_vis() {
 
   var numText = document.createElement("p");
   numText.setAttribute("class", "buttonText");
-  numText.innerHTML = "# of values to insert:";
+  numText.innerHTML = "# of values to insert: &nbsp;";
   document.getElementById("bft-divIniNum").appendChild(numText);
   document.getElementById("bft-divIniNum").appendChild(userNum);
 
@@ -756,7 +756,7 @@ function BFT_vis() {
 
   var insertText = document.createElement("p");
   insertText.setAttribute("class", "buttonText");
-  insertText.innerHTML = "Add a value: ";
+  insertText.innerHTML = "Add a value: &nbsp;";
   document.getElementById("bft-divInsert").appendChild(insertText);
   document.getElementById("bft-divInsert").appendChild(userInsert);
 
@@ -1215,7 +1215,7 @@ function BFT_vis() {
   });
   var findText = document.createElement("p");
   findText.setAttribute("class", "buttonText");
-  findText.innerHTML = "Find a value: ";
+  findText.innerHTML = "Find a value: &nbsp;";
   document.getElementById("bft-divFind").appendChild(findText);
   document.getElementById("bft-divFind").appendChild(userFind);
 
