@@ -255,7 +255,7 @@ function drawTreeViz(source) {
   treeViz.select(".fullText").remove();
 
   // the parent node where the element is to be inserted
-  const insertNode = nodes.filter(x => x.data.insertNode === true);
+  const insertNode = nodes.filter(x => x.data.fullInsertNode === true);
 
   const fullText = treeViz.selectAll(".fullText")
     .data(insertNode, function(d) { return d.id; });
@@ -499,9 +499,7 @@ function findStepClicked(id) {
   updateButtonStates(id, 'find');
 
   const curNode = rtreeInsertionOrder[id];
-  const curTree = cloneTree(rtreeHistory[id]);
-
-
+  const curTree = cloneTree(rtreeHistory[id])
   const subtreePath = curTree.getBestSubtree(curNode);
 
   // update the data of all nodes that is in the path of the _chooseSubtree function
@@ -509,21 +507,22 @@ function findStepClicked(id) {
   let curPath = curTree.data;
   for (let i = 0; i < subtreePath.length; i++) {
     const curSubpath = subtreePath[i];
+    curSubpath.id = getKey(curSubpath);
     if (i == 0) { // first subtree path is always the root
       curPath.fill = "#99cc66";
       curPath.stroke = "#04a700"
     } else { // look in the children
-      curPath = curPath.children.find((x) => x.id === curSubpath.id);
+      curPath.children.find((x) => console.log(x.id));
+      curPath = curPath.children.find((x) => getKey(x) === curSubpath.id);
       curPath.fill = "#99cc66";
       curPath.stroke = "#04a700"
     }
   }
 
-  // for the actual parent node that will be inserted into, add a 'insertNode' attribute 
-  curPath.insertNode = true;
-
-  console.log(curPath);
-  console.log("FIND STEP", curTree);
+  // for the actual parent node that will be inserted into, and if its full, add a 'fullInsertNode' attribute
+  if (curPath.children.length >= 3) { // parent node is full
+    curPath.fullInsertNode = true;
+  }
 
   // set up the cartesianViz to look like the state (id - 1)
   let cartesianArr = curTree.allIncludingNonLeaf();
