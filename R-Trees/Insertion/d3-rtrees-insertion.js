@@ -18,9 +18,7 @@ const lightgray = "#ececec";
 const lightblue = "#e0e9fa";
 
 let curStep = 1;
-let playing = false;
-
-let playTimer = null;
+let curSplitIndex = 0;
 
 
 //////////////////////////////////////
@@ -109,12 +107,90 @@ function cloneTree(rtree) {
 const nodeHeight = 17;
 const nodeWidth = 34;
 
-function drawSplitFindControl(rtree) {
-  const arrowControlViz = d3.select('#controllerContainer');
-  console.log('drawSplit', rtree);
+function splitShowPrev(id) {
+  if (curSplitIndex > 0) {
+    curSplitIndex--;
+  }
+  
+  drawSplit(id, curSplitIndex);
+}
 
-  arrowControlViz.selectAll("*").remove();
-  if (rtree.didSplit) {
+function splitShowNext(id) {
+  const splitArr = rtreeHistory[id+1]._lastExhaustiveSplit;
+
+  if (curSplitIndex < splitArr.length - 1) {
+    curSplitIndex++;
+  }
+  drawSplit(id, curSplitIndex);
+}
+
+// draw the splits, use arrows to control which # split to see. 
+function drawSplit(id, splitIndex) {
+  const curTree = cloneTree(rtreeHistory[id]);
+  const curNode = rtreeInsertionOrder[id];
+  const subtreePath = curTree.getBestSubtree(curNode);
+  const parentNode = subtreePath[subtreePath.length - 1];
+  let cartesianArr = curTree.allIncludingNonLeaf();
+  cartesianArr.push(curTree.data); // include the root
+
+
+  // get the current split to show
+  const splitArr = rtreeHistory[id+1]._lastExhaustiveSplit;
+  const curSplit = splitArr[splitIndex];
+
+  // check which one is the best split
+  const curTree2 = cloneTree(rtreeHistory[id+1]);
+  const subtreePath2 = curTree2.getBestSubtree(curNode);
+  const parentNode2 = subtreePath2[subtreePath2.length - 1]; // last index, the parent node, not grandparent/greatgrandparent etc
+
+  // best split index
+  const bestSplitIndex = splitArr.findIndex((x) => {
+    return getKey(x.bbox1) === getKey(parentNode2) ||
+      getKey(x.bbox2) === getKey(parentNode2)
+  });
+
+  // push the two split bounding boxes
+  cartesianArr.push({ ...rtreeInsertionOrder[id], highlight: 'red' })
+  cartesianArr.push({ ...curSplit.bbox1, highlight: 'blue' });
+  cartesianArr.push({ ...curSplit.bbox2, highlight: 'purple' });
+
+  // hide the parent node from the cartesian view, as we are showing the split boxes
+  cartesianArr = cartesianArr.filter((x) => {
+    if (getKey(x) == getKey(parentNode)) {
+      if (x.highlight != parentNode.highlight) {
+        return true;
+      }
+      return false;
+    }
+    return true;
+  });
+
+  const arrowControlViz = d3.select('#controllerContainer');
+  arrowControlViz.selectAll(".arrowText").remove();
+  arrowControlViz.append("text")
+    .attr("x", 72)
+    .attr("y", 370)
+    .attr("class", "arrowText")
+    .text(`Showing split ${splitIndex + 1} out of ${splitArr.length}`)
+    .attr("style", "pointer-events: none;");
+
+  arrowControlViz.append("text")
+    .attr("x", 72)
+    .attr("y", 400)
+    .attr("class", "arrowText")
+    .text(`The best split is split ${bestSplitIndex + 1}`)
+    .attr("style", "pointer-events: none;");
+
+  curStep = id;
+  drawViz(curTree, cartesianArr, { drawControlArrows: true });
+}
+
+function drawSplitFindControl(enabled) {
+  const arrowControlViz = d3.select('#controllerContainer');
+
+  if (enabled) {
+    arrowControlViz.selectAll(".arrow").remove();
+
     arrowControlViz.append("svg:image")
       .attr("x", 110)
       .attr("y", 420)
@@ -123,7 +199,8 @@ function drawSplitFindControl(rtree) {
       .attr("height", 30)
       .attr("xlink:href", "./images/arrowLeft.png")
       .attr("preserveAspectRatio", "none")
-      .attr("style", "object-fit: fill");
+      .attr("style", "object-fit: fill")
+      .on('click', () => splitShowPrev(curStep));
   
     arrowControlViz.append("svg:image")
       .attr("x", 150)
@@ -133,8 +210,12 @@ function drawSplitFindControl(rtree) {
       .attr("height", 30)
       .attr("xlink:href", "./images/arrowRight.png")
       .attr("preserveAspectRatio", "none")
-      .attr("style", "object-fit: fill");
+      .attr("style", "object-fit: fill")
+      .on('click', () => splitShowNext(curStep));
   } else {
+    arrowControlViz.selectAll("*").remove();
+    curSplitIndex = 1;
+
     arrowControlViz.append("svg:image")
       .attr("x", 110)
       .attr("y", 420)
@@ -366,7 +447,7 @@ function drawCartesianViz(rtreeArr) {
     .attr("style", (d) => 
       d.notVisible 
         ? `outline: 0px`
-        : `outline: 1px solid ${d.highlight ? 'red' : 'black'}; fill-opacity: 0.5`
+        : `outline: 1px solid ${d.highlight ? d.highlight : 'black'}; fill-opacity: 0.5`
     );
 
   nodeEnter.append("svg:image")
@@ -395,7 +476,7 @@ function drawCartesianViz(rtreeArr) {
     .attr("style", (d) => 
       d.notVisible 
         ? `outline: 0px`
-        : `outline: 1px solid ${d.highlight ? 'red' : 'black'}; fill-opacity: 0.5`
+        : `outline: 1px solid ${d.highlight ? d.highlight : 'black'}; fill-opacity: 0.5`
     );
 
   node.select(".cartesianPolygon")
@@ -490,8 +571,9 @@ function bboxStepClicked(id) {
 
   // append just the new node to be inserted
   // but hide the rect, and draw the polygon instead
-  cartesianArr.push({...curNode, highlight: true, drawPolygon: true});
+  cartesianArr.push({...curNode, highlight: 'red', drawPolygon: true});
 
+  curStep = id;
   drawViz(curTree, cartesianArr);
 }
 
@@ -512,7 +594,6 @@ function findStepClicked(id) {
       curPath.fill = "#99cc66";
       curPath.stroke = "#04a700"
     } else { // look in the children
-      curPath.children.find((x) => console.log(x.id));
       curPath = curPath.children.find((x) => getKey(x) === curSubpath.id);
       curPath.fill = "#99cc66";
       curPath.stroke = "#04a700"
@@ -530,49 +611,24 @@ function findStepClicked(id) {
 
   // append just the new node to be inserted 
   // without using the rbush's insert function ( so the bounding box of parents is not drawn )
-  cartesianArr.push({ ...curNode, highlight: true });
+  cartesianArr.push({ ...curNode, highlight: 'red' });
 
   // redraw the viz with the new data
+  curStep = id;
   drawViz(curTree, cartesianArr);
 }
 
 function splitStepClicked(id) {
+  const curTree = cloneTree(rtreeHistory[id])
+  let cartesianArr = curTree.allIncludingNonLeaf();
+
   updateButtonStates(id, 'split');
 
-  return;
+  curStep = id;
+  drawViz(curTree, cartesianArr, { drawControlArrows: true });
 
-  const curNode = rtreeInsertionOrder[id];
-  const curTree = cloneTree(rtreeHistory[id]);
-
-
-  const subtreePath = curTree.getBestSubtree(curNode);
-
-  // update the data of all nodes that is in the path of the _chooseSubtree function
-  // to be colored
-  let curPath = curTree.data;
-  for (let i = 0; i < subtreePath.length; i++) {
-    const curSubpath = subtreePath[i];
-    if (i == 0) { // first subtree path is always the root
-      curPath.fill = "#99cc66";
-      curPath.stroke = "#04a700"
-    } else { // look in the children
-      curPath = curPath.children.find((x) => x.id === curSubpath.id);
-      curPath.fill = "#99cc66";
-      curPath.stroke = "#04a700"
-    }
-  }
-
-  // set up the cartesianViz to look like the state (id - 1)
-  let cartesianArr = curTree.allIncludingNonLeaf();
-  cartesianArr.push(curTree.data); // include the root
-
-  // append just the new node to be inserted 
-  // without using the rbush's insert function ( so the bounding box of parents is not drawn )
-  cartesianArr.push({ ...curNode, highlight: true });
-
-  // redraw the viz with the new data
-  drawViz(curTree, cartesianArr);
-
+  curSplitIndex = 0;
+  drawSplit(id, curSplitIndex);
 }
 
 // a node step is clicked, e.g "N1"/"N2"
@@ -738,17 +794,20 @@ function drawSteps() {
   splitNode.exit().remove();
 }
 
-
-
 // draws the visualization based on the data passed to it.\
 // rtree: RBush object
 // optional cartesianArr, containing the rectangles to be drawn in the cartesian view.
 // if empty, will construct one from the {rtree}
-function drawViz(rtree = rtreeHistory[curStep], cartesianArr) {
+function drawViz(rtree = rtreeHistory[curStep], cartesianArr, config = {}) {
   root = createRoot(rtree.data);
 
   drawTreeViz(rtree);
-  drawSplitFindControl(rtree);
+
+  if (config.drawControlArrows === true) {
+    drawSplitFindControl(true);
+  } else {
+    drawSplitFindControl(false);
+  }
 
   if (cartesianArr) {
     drawCartesianViz(cartesianArr);

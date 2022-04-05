@@ -390,8 +390,8 @@ rbush.prototype = {
 
       // for each combination of nodes
       for (let i = 0; i < M; i++) {
-        for (let j = i; j < M; j++) {
-          if (i == j) continue;
+        for (let j = i + 1; j < M; j++) {
+          if (i == j || j < i) continue;
           // create an empty node t
           let destNode = createNode(null);
           destNode.minX = Infinity;
