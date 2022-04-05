@@ -251,6 +251,28 @@ function drawTreeViz(source) {
 
   arrows.exit().remove();
 
+  // draw "FULL" red text next to node if this node is full
+  treeViz.select(".fullText").remove();
+
+  // the parent node where the element is to be inserted
+  const insertNode = nodes.filter(x => x.data.insertNode === true);
+
+  const fullText = treeViz.selectAll(".fullText")
+    .data(insertNode, function(d) { return d.id; });
+
+  const fullTextEnter = fullText.enter()
+    .append("g")
+    .attr("class", "fullText")
+
+  fullTextEnter.append("text")
+    .text("<== FULL")
+    .attr('fill', 'red')
+    .attr("style", "pointer-events: none;")
+    .attr("transform", d => {
+      return `translate(${d.x + 25}, ${d.y + 5})`
+  })
+
+
 
   // var nodeExit = node.exit()
   //   .transition()
@@ -259,6 +281,8 @@ function drawTreeViz(source) {
   //   .remove();
   node.exit().remove();
   nodeEnter.exit().remove();
+  fullText.exit().remove();
+
 }
 
 
@@ -391,14 +415,21 @@ function drawCartesianViz(rtreeArr) {
 // colors all the nodes that are in a past state to be blue, and colors all nodes
 // that are in a future state to be gray
 function updateButtonStates(id, type) {
+  // the ID denotes the final node to be colored, so all nodes until to this ID will be colored.
+  let splitID = id;
   let findID = id;
   let bboxID = id;
   let nodeID = id;
 
+  if (type === 'split') {
+    nodeID--;
+  }
   if (type === 'find') {
+    splitID--;
     nodeID--;
   }
   if (type === 'bbox') {
+    splitID--;
     nodeID--;
     findID--;
   }
@@ -432,6 +463,17 @@ function updateButtonStates(id, type) {
     rtreeSteps[i].color = lightgray;
   }
 
+  // update SPLIT buttons
+  // color all nodes before this one ( incl this one ) blue
+  // update NODE buttons
+  // color all nodes before this one ( incl this one ) blue
+  for (let i = 0; i <= splitID; i++ ) {
+    rtreeSteps[i].subSteps.split = true;
+  }
+  // color all nodes after this gray
+  for (let i = splitID + 1; i < rtreeSteps.length; i++ ) {
+    rtreeSteps[i].subSteps.split = false;
+  }
 
 }
 
@@ -477,6 +519,12 @@ function findStepClicked(id) {
     }
   }
 
+  // for the actual parent node that will be inserted into, add a 'insertNode' attribute 
+  curPath.insertNode = true;
+
+  console.log(curPath);
+  console.log("FIND STEP", curTree);
+
   // set up the cartesianViz to look like the state (id - 1)
   let cartesianArr = curTree.allIncludingNonLeaf();
   cartesianArr.push(curTree.data); // include the root
@@ -487,6 +535,45 @@ function findStepClicked(id) {
 
   // redraw the viz with the new data
   drawViz(curTree, cartesianArr);
+}
+
+function splitStepClicked(id) {
+  updateButtonStates(id, 'split');
+
+  return;
+
+  const curNode = rtreeInsertionOrder[id];
+  const curTree = cloneTree(rtreeHistory[id]);
+
+
+  const subtreePath = curTree.getBestSubtree(curNode);
+
+  // update the data of all nodes that is in the path of the _chooseSubtree function
+  // to be colored
+  let curPath = curTree.data;
+  for (let i = 0; i < subtreePath.length; i++) {
+    const curSubpath = subtreePath[i];
+    if (i == 0) { // first subtree path is always the root
+      curPath.fill = "#99cc66";
+      curPath.stroke = "#04a700"
+    } else { // look in the children
+      curPath = curPath.children.find((x) => x.id === curSubpath.id);
+      curPath.fill = "#99cc66";
+      curPath.stroke = "#04a700"
+    }
+  }
+
+  // set up the cartesianViz to look like the state (id - 1)
+  let cartesianArr = curTree.allIncludingNonLeaf();
+  cartesianArr.push(curTree.data); // include the root
+
+  // append just the new node to be inserted 
+  // without using the rbush's insert function ( so the bounding box of parents is not drawn )
+  cartesianArr.push({ ...curNode, highlight: true });
+
+  // redraw the viz with the new data
+  drawViz(curTree, cartesianArr);
+
 }
 
 // a node step is clicked, e.g "N1"/"N2"
@@ -608,11 +695,48 @@ function drawSteps() {
     .text("find")
     .attr("style", "pointer-events: none;");
 
-
   findNode.select("rect")
     .attr("fill", (d) => d.subSteps.find ?  "skyblue" : lightgray)
     
   findNode.exit().remove();
+
+  // get only nodes that are split at this step
+  const stepsFilteredBySplit = rtreeSteps.filter((x) => x.didSplit === true);
+
+  // split steps
+  const splitNode = stepsContainer.selectAll(".splitNode")
+    .data(stepsFilteredBySplit, function(d) { return d.node; })
+  
+  const splitNodeEnter = splitNode.enter()
+    .append("g")
+    .attr("class", "splitNode")
+
+  splitNodeEnter.append("rect")
+    .attr("x", (stepHGap + nodeWidth) * 2)
+    .attr("y", d => (stepVGap + nodeHeight )* d.id)
+    .attr("width", nodeWidth)
+    .attr("height", nodeHeight)
+    .attr("fill", (d) => d.subSteps.split ?  "skyblue" : lightgray)
+    .attr("stroke", darkgray)
+    .attr("style", "cursor: pointer")
+    .on("click", (d, obj) => {
+      splitStepClicked(obj.id);
+      drawSteps();
+    })
+    .transition()
+
+  splitNodeEnter.append("text")
+    .attr("x", (stepHGap + nodeWidth) * 2 + 4)
+    .attr("y", d => (15 + nodeHeight ) * d.id)
+    .attr("dy", ".92em")
+    .text("split")
+    .attr("style", "pointer-events: none;");
+
+
+  splitNode.select("rect")
+    .attr("fill", (d) => d.subSteps.split ?  "skyblue" : lightgray)
+    
+  splitNode.exit().remove();
 }
 
 
@@ -635,7 +759,6 @@ function drawViz(rtree = rtreeHistory[curStep], cartesianArr) {
   
     drawCartesianViz(rtreeArr)
   }
-
 }
 
 
@@ -702,12 +825,18 @@ function main() {
     let insertNode = rtreeInsertionOrder[i];
     let returnObj = rbushe.insert(insertNode);
 
+
+
     const tree = cloneTree(rbushe);
     // index increased by 1, as there exists empty tree in index 0
     rtreeHistory[i+1] = tree;
 
     if (returnObj.split) { // rtree did a split in this insertion, mark this
       rtreeHistory[i+1].didSplit = true;
+      rtreeSteps[i].didSplit = true;
+      rtreeSteps[i].subSteps.split = false;
+
+      
     }
   }
 
