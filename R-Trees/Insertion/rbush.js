@@ -11,7 +11,8 @@ function rbush(maxEntries, format) {
     // max entries in a node is 9 by default; min node fill is 40% for best performance
     this._maxEntries = Math.max(3, maxEntries || 9);
     this._minEntries = Math.max(1, Math.ceil(this._maxEntries * 0.4));
-    this._lastExhaustiveSplit = [];
+    this._lastExhaustiveSplit = []; // contain bboxs of the potential splits
+    this._lastFindArr = [];  // arr of bboxs used when checking all possible subtrees to insert into
 
     if (format) {
         this._initFormat(format);
@@ -283,6 +284,8 @@ rbush.prototype = {
     _chooseSubtree: function (bbox, node, level, path) {
 
         var i, len, child, targetNode, area, enlargement, minArea, minEnlargement;
+        
+        this._lastFindArr = [];
 
         while (true) {
             path.push(node);
@@ -291,10 +294,16 @@ rbush.prototype = {
 
             minArea = minEnlargement = Infinity;
 
-
             for (i = 0, len = node.children.length; i < len; i++) {
                 child = node.children[i];
                 area = bboxArea(child);
+                
+                const clonedBBox = structuredClone(bbox);
+                const extendedBBox = extend(clonedBBox, this.toBBox(child));
+                extendedBBox.node = null;
+                extendedBBox.polygon = null;
+                this._lastFindArr.push(extendedBBox);
+
                 enlargement = enlargedArea(bbox, child) - area;
 
                 // choose entry with the least area enlargement
@@ -314,7 +323,7 @@ rbush.prototype = {
 
             node = targetNode || node.children[0];
         }
-        
+
         return node;
     },
 
