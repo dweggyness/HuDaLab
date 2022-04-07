@@ -13,6 +13,10 @@ const darkgray = "#555555";
 const gray = "#8c8c8c";
 const lightgray = "#ececec";
 const lightblue = "#e0e9fa";
+const greenFill = "#99cc66";
+const greenStroke = "#04a700";
+const orangeFill = 'orange';
+const orangeStroke = 'darkorange';
 const nodeHeight = 17;
 const nodeWidth = 34;
 
@@ -101,6 +105,7 @@ function cloneTree(rtree) {
   tempRTree._maxEntries = rtree._maxEntries;
   tempRTree._minEntries = rtree._minEntries;
   tempRTree._lastExhaustiveSplit = rtree._lastExhaustiveSplit;
+  tempRTree._lastFindArr = rtree._lastFindArr;
   return tempRTree;
 }
 
@@ -152,6 +157,7 @@ function drawSplit(id, splitIndex) {
   const splitArr = rtreeHistory[id+1]._lastExhaustiveSplit;
   const curSplit = splitArr[splitIndex];
 
+
   // check which one is the best split
   const curTree2 = cloneTree(rtreeHistory[id+1]);
   const subtreePath2 = curTree2.getBestSubtree(curNode);
@@ -200,7 +206,9 @@ function drawSplit(id, splitIndex) {
   drawViz(curTree, cartesianArr, { drawControlArrows: "split" });
 }
 
-function drawFind(id, splitIndex) {
+function drawFind(id, findIndex) {
+  // redraw the viz with the new data
+  curStep = id;
   const curTree = cloneTree(rtreeHistory[id]);
   const curNode = rtreeInsertionOrder[id];
   const subtreePath = curTree.getBestSubtree(curNode);
@@ -208,24 +216,27 @@ function drawFind(id, splitIndex) {
   let cartesianArr = curTree.allIncludingNonLeaf();
   cartesianArr.push(curTree.data); // include the root
 
-  // get the current split to show
+  // get the current find to show
   const findArr = rtreeHistory[id+1]._lastFindArr;
   const curFind = findArr[findIndex];
 
-  // check which one is the best split
-  // const curTree2 = cloneTree(rtreeHistory[id+1]);
-  // const subtreePath2 = curTree2.getBestSubtree(curNode);
-  // const parentNode2 = subtreePath2[subtreePath2.length - 1]; // last index, the parent node, not grandparent/greatgrandparent etc
+  // check which one is index of the best node to insert into
+  const curTree2 = cloneTree(rtreeHistory[id]);
+  curTree2.insertWithoutSplit(curNode);
 
-  // best split index
-  // const bestSplitIndex = splitArr.findIndex((x) => {
-  //   return getKey(x.bbox1) === getKey(parentNode2) ||
-  //     getKey(x.bbox2) === getKey(parentNode2)
-  // });
+  const subtreePath2 = curTree2.getBestSubtree(curNode);
+  const parentNode2 = subtreePath2[subtreePath2.length - 1];
 
-  // push the two split bounding boxes
+  let bestFindIndex = findArr.findIndex((x) => {
+    return getKey(x.bbox) === getKey(parentNode2)
+  });
+  
+  if (bestFindIndex < 0) bestFindIndex = 0; // default
+
+
+  // push the bounding boxes to the cartesian arr
   cartesianArr.push({ ...rtreeInsertionOrder[id], highlight: 'red' })
-  cartesianArr.push({ ...curFind, highlight: 'blue' });
+  cartesianArr.push({ ...curFind.bbox, highlight: 'blue' });
 
   // hide the parent node of the current node 
   // from the cartesian view, to highlight the split boxes
@@ -239,21 +250,43 @@ function drawFind(id, splitIndex) {
     return true;
   });
 
+  const isBestInsert = findIndex === bestFindIndex;
+  const nodeFillColor = isBestInsert ? greenFill : orangeFill;
+  const nodeStrokeColor = isBestInsert ? greenStroke : orangeStroke;
+  // update the color of all nodes that is in the path of the current find 
+  let curPath = curTree.data;
+  curPath.fill = nodeFillColor;
+  curPath.stroke = nodeStrokeColor;
+  if (curPath.children && curPath.leaf === false) {
+    curPath = curPath.children[findIndex];
+    curPath.fill = nodeFillColor;
+    curPath.stroke = nodeStrokeColor;
+  }
+
+  // for the actual parent node that will be inserted into, and if its full, add a 'fullInsertNode' attribute
+  if (curPath.children && curPath.children.length >= 3) { // parent node is full
+    curPath.fullInsertNode = true;
+  }
+
+  // append just the new node to be inserted 
+  // without using the rbush's insert function ( so the bounding box of parents is not drawn )
+  cartesianArr.push({ ...curNode, highlight: 'red' });
+
   const arrowControlViz = d3.select('#controllerContainer');
   arrowControlViz.selectAll(".arrowText").remove();
   arrowControlViz.append("text")
     .attr("x", 72)
     .attr("y", 370)
     .attr("class", "arrowText")
-    .text(`Showing split ${findIndex + 1} out of ${findArr.length}`)
+    .text(`Showing find ${findIndex + 1} out of ${findArr.length}`)
     .attr("style", "pointer-events: none;");
 
-  // arrowControlViz.append("text")
-  //   .attr("x", 72)
-  //   .attr("y", 400)
-  //   .attr("class", "arrowText")
-  //   .text(`The best split is split ${bestSplitIndex + 1}`)
-  //   .attr("style", "pointer-events: none;");
+  arrowControlViz.append("text")
+    .attr("x", 36)
+    .attr("y", 400)
+    .attr("class", "arrowText")
+    .text(`The best node to insert into is node ${bestFindIndex + 1}`)
+    .attr("style", "pointer-events: none;");
 
   curStep = id;
   drawViz(curTree, cartesianArr, { drawControlArrows: "find" });
@@ -324,7 +357,7 @@ function drawTreeViz(source) {
     .attr("height", nodeHeight)
     .attr("class", "treeRect")
     .attr("fill", (d) => d.data.fill || lightgray)
-    .attr("stroke", darkgray)
+    .attr("stroke", (d) => d.data.stroke || darkgray)
     .on('mouseover', (d, i) => {
       onNodeHover(i);
     })
@@ -353,6 +386,8 @@ function drawTreeViz(source) {
   // update
   var nodeUpdate = node
     .select("rect")
+    .attr("fill", (d) => d.data.fill || lightgray)
+    .attr("stroke", (d) => d.data.stroke || darkgray)
     .transition()
     .duration(500)
     .attr("transform", d => {
@@ -414,8 +449,6 @@ function drawTreeViz(source) {
     .attr("transform", d => {
       return `translate(${d.x + 25}, ${d.y + 5})`
   })
-
-
 
   // var nodeExit = node.exit()
   //   .transition()
@@ -639,58 +672,18 @@ function bboxStepClicked(id) {
   drawViz(curTree, cartesianArr);
 }
 
-function findStepClicked(id) {
-  updateButtonStates(id, 'find');
-
-  const curNode = rtreeInsertionOrder[id];
-  const curTree = cloneTree(rtreeHistory[id])
-  const subtreePath = curTree.getBestSubtree(curNode);
-
-  // update the data of all nodes that is in the path of the _chooseSubtree function
-  // to be colored
-  let curPath = curTree.data;
-  for (let i = 0; i < subtreePath.length; i++) {
-    const curSubpath = subtreePath[i];
-    curSubpath.id = getKey(curSubpath);
-    if (i == 0) { // first subtree path is always the root
-      curPath.fill = "#99cc66";
-      curPath.stroke = "#04a700"
-    } else { // look in the children
-      curPath = curPath.children.find((x) => getKey(x) === curSubpath.id);
-      curPath.fill = "#99cc66";
-      curPath.stroke = "#04a700"
-    }
-  }
-
-  // for the actual parent node that will be inserted into, and if its full, add a 'fullInsertNode' attribute
-  if (curPath.children.length >= 3) { // parent node is full
-    curPath.fullInsertNode = true;
-  }
-
-  // set up the cartesianViz to look like the state (id - 1)
-  let cartesianArr = curTree.allIncludingNonLeaf();
-  cartesianArr.push(curTree.data); // include the root
-
-  // append just the new node to be inserted 
-  // without using the rbush's insert function ( so the bounding box of parents is not drawn )
-  cartesianArr.push({ ...curNode, highlight: 'red' });
-
-  // redraw the viz with the new data
-  curStep = id;
-  drawViz(curTree, cartesianArr);
-}
-
 function splitStepClicked(id) {
-  const curTree = cloneTree(rtreeHistory[id])
-  let cartesianArr = curTree.allIncludingNonLeaf();
-
   updateButtonStates(id, 'split');
-
-  curStep = id;
-  drawViz(curTree, cartesianArr, { drawControlArrows: 'split' });
 
   curSplitIndex = 0;
   drawSplit(id, curSplitIndex);
+}
+
+function findStepClicked(id) {
+  updateButtonStates(id, 'find');
+
+  curFindIndex = 0;
+  drawFind(id, curFindIndex);
 }
 
 // a node step is clicked, e.g "N1"/"N2"

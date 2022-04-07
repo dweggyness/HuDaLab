@@ -128,6 +128,10 @@ rbush.prototype = {
         return this;
     },
 
+    insertWithoutSplit: function(item) {
+      return this._insertWithoutSplit(item, this.data.height - 1);
+    },
+
     clear: function () {
         this.data = createNode([]);
         return this;
@@ -290,7 +294,16 @@ rbush.prototype = {
         while (true) {
             path.push(node);
 
-            if (node.leaf || path.length - 1 === level) break;
+            if (node.leaf || path.length - 1 === level) {
+              if (this._lastFindArr.length == 0) {
+                const clonedBBox = structuredClone(bbox);
+                const extendedBBox = extend(clonedBBox, this.toBBox(node));
+                extendedBBox.node = null;
+                extendedBBox.polygon = null;
+                this._lastFindArr.push({ bbox: extendedBBox, path: path[path.length - 1] });
+              }
+              break;
+            }
 
             minArea = minEnlargement = Infinity;
 
@@ -302,7 +315,7 @@ rbush.prototype = {
                 const extendedBBox = extend(clonedBBox, this.toBBox(child));
                 extendedBBox.node = null;
                 extendedBBox.polygon = null;
-                this._lastFindArr.push(extendedBBox);
+                this._lastFindArr.push({ bbox: extendedBBox, path: path[path.length - 1] });
 
                 enlargement = enlargedArea(bbox, child) - area;
 
@@ -323,8 +336,23 @@ rbush.prototype = {
 
             node = targetNode || node.children[0];
         }
-
+      
         return node;
+    },
+
+    _insertWithoutSplit: function (item, level, isNode) {
+      var toBBox = this.toBBox,
+          bbox = isNode ? item : toBBox(item),
+          insertPath = [];
+
+      // find the best node for accommodating the item, saving all nodes along the path too
+      var node = this._chooseSubtree(bbox, this.data, level, insertPath);
+      // put the item into the node
+      node.children.push(item);
+      extend(node, bbox);
+
+      // adjust bboxes along the insertion path
+      this._adjustParentBBoxes(bbox, insertPath, insertPath.length - 1);
     },
 
     _insert: function (item, level, isNode) {
