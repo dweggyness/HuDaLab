@@ -1,6 +1,6 @@
+// global constants
 const width = 900;
 const height = 500;
-
 const stepsWidth = 300;
 const vizWidth = 600;
 const treeVizHeight = 220;
@@ -8,22 +8,30 @@ const middleGapHeight = 30; // gap between the two visualizations
 const cartesianVizHeight = height - treeVizHeight;
 const stepsDisplayWidth = width - vizWidth;
 const margin = 15;
-
 const borderWidth = 1.5;
-const rtreeHistory = [];
-
 const darkgray = "#555555";
 const gray = "#8c8c8c";
 const lightgray = "#ececec";
 const lightblue = "#e0e9fa";
+const nodeHeight = 17;
+const nodeWidth = 34;
 
+// global vars
 let curStep = 1;
 let curSplitIndex = 0;
+let curFindIndex = 0;
 
+const rtreeHistory = [];
+var id = 0;
+// draw the tree view of the RTree, which is to the left
+
+var treeWidth = vizWidth;
+var treeHeight = treeVizHeight - middleGapHeight - margin;
+const tree = d3.tree().size([treeWidth, treeHeight]);
+tree.separation((a, b) => a.parent == b.parent ? 1 : 2)
+var root;
 
 //////////////////////////////////////
-
-
 
 // when a node is hovered, highlight the node by scaling it and changing its colour
 const onNodeHover = (node) => {
@@ -63,14 +71,6 @@ const onNodeUnhover = (node) => {
     .attr("fill", "none");
 }
 
-var id = 0;
-// draw the tree view of the RTree, which is to the left
-
-var treeWidth = vizWidth;
-var treeHeight = treeVizHeight - middleGapHeight - margin;
-const tree = d3.tree().size([treeWidth, treeHeight]);
-tree.separation((a, b) => a.parent == b.parent ? 1 : 2)
-var root;
 
 function createRoot(data) {
   let root = d3.hierarchy(data);
@@ -104,8 +104,6 @@ function cloneTree(rtree) {
   return tempRTree;
 }
 
-const nodeHeight = 17;
-const nodeWidth = 34;
 
 function splitShowPrev(id) {
   if (curSplitIndex > 0) {
@@ -124,6 +122,23 @@ function splitShowNext(id) {
   drawSplit(id, curSplitIndex);
 }
 
+function findShowPrev(id) {
+  if (curFindIndex > 0) {
+    curFindIndex--;
+  }
+  
+  drawFind(id, curFindIndex);
+}
+
+function findShowNext(id) {
+  const findArr = rtreeHistory[id+1]._lastFindArr;
+
+  if (curFindIndex < findArr.length - 1) {
+    curFindIndex++;
+  }
+  drawFind(id, curFindIndex);
+}
+
 // draw the splits, use arrows to control which # split to see. 
 function drawSplit(id, splitIndex) {
   const curTree = cloneTree(rtreeHistory[id]);
@@ -132,7 +147,6 @@ function drawSplit(id, splitIndex) {
   const parentNode = subtreePath[subtreePath.length - 1];
   let cartesianArr = curTree.allIncludingNonLeaf();
   cartesianArr.push(curTree.data); // include the root
-
 
   // get the current split to show
   const splitArr = rtreeHistory[id+1]._lastExhaustiveSplit;
@@ -154,7 +168,8 @@ function drawSplit(id, splitIndex) {
   cartesianArr.push({ ...curSplit.bbox1, highlight: 'blue' });
   cartesianArr.push({ ...curSplit.bbox2, highlight: 'purple' });
 
-  // hide the parent node from the cartesian view, as we are showing the split boxes
+  // hide the parent node of the current node 
+  // from the cartesian view, to highlight the split boxes
   cartesianArr = cartesianArr.filter((x) => {
     if (getKey(x) == getKey(parentNode)) {
       if (x.highlight != parentNode.highlight) {
@@ -182,62 +197,109 @@ function drawSplit(id, splitIndex) {
     .attr("style", "pointer-events: none;");
 
   curStep = id;
-  drawViz(curTree, cartesianArr, { drawControlArrows: true });
+  drawViz(curTree, cartesianArr, { drawControlArrows: "split" });
 }
 
-function drawSplitFindControl(enabled) {
+function drawFind(id, splitIndex) {
+  const curTree = cloneTree(rtreeHistory[id]);
+  const curNode = rtreeInsertionOrder[id];
+  const subtreePath = curTree.getBestSubtree(curNode);
+  const parentNode = subtreePath[subtreePath.length - 1];
+  let cartesianArr = curTree.allIncludingNonLeaf();
+  cartesianArr.push(curTree.data); // include the root
+
+  // get the current split to show
+  const findArr = rtreeHistory[id+1]._lastFindArr;
+  const curFind = findArr[findIndex];
+
+  // check which one is the best split
+  // const curTree2 = cloneTree(rtreeHistory[id+1]);
+  // const subtreePath2 = curTree2.getBestSubtree(curNode);
+  // const parentNode2 = subtreePath2[subtreePath2.length - 1]; // last index, the parent node, not grandparent/greatgrandparent etc
+
+  // best split index
+  // const bestSplitIndex = splitArr.findIndex((x) => {
+  //   return getKey(x.bbox1) === getKey(parentNode2) ||
+  //     getKey(x.bbox2) === getKey(parentNode2)
+  // });
+
+  // push the two split bounding boxes
+  cartesianArr.push({ ...rtreeInsertionOrder[id], highlight: 'red' })
+  cartesianArr.push({ ...curFind, highlight: 'blue' });
+
+  // hide the parent node of the current node 
+  // from the cartesian view, to highlight the split boxes
+  cartesianArr = cartesianArr.filter((x) => {
+    if (getKey(x) == getKey(parentNode)) {
+      if (x.highlight != parentNode.highlight) {
+        return true;
+      }
+      return false;
+    }
+    return true;
+  });
+
+  const arrowControlViz = d3.select('#controllerContainer');
+  arrowControlViz.selectAll(".arrowText").remove();
+  arrowControlViz.append("text")
+    .attr("x", 72)
+    .attr("y", 370)
+    .attr("class", "arrowText")
+    .text(`Showing split ${findIndex + 1} out of ${findArr.length}`)
+    .attr("style", "pointer-events: none;");
+
+  // arrowControlViz.append("text")
+  //   .attr("x", 72)
+  //   .attr("y", 400)
+  //   .attr("class", "arrowText")
+  //   .text(`The best split is split ${bestSplitIndex + 1}`)
+  //   .attr("style", "pointer-events: none;");
+
+  curStep = id;
+  drawViz(curTree, cartesianArr, { drawControlArrows: "find" });
+}
+
+function drawSplitFindControl(draw) {
   const arrowControlViz = d3.select('#controllerContainer');
 
-  if (enabled) {
-    arrowControlViz.selectAll(".arrow").remove();
-
-    arrowControlViz.append("svg:image")
-      .attr("x", 110)
-      .attr("y", 420)
-      .attr("class", "arrow")
-      .attr("width", 20)
-      .attr("height", 30)
-      .attr("xlink:href", "./images/arrowLeft.png")
-      .attr("preserveAspectRatio", "none")
-      .attr("style", "object-fit: fill")
-      .on('click', () => splitShowPrev(curStep));
-  
-    arrowControlViz.append("svg:image")
-      .attr("x", 150)
-      .attr("y", 420)
-      .attr("class", "arrow")
-      .attr("width", 20)
-      .attr("height", 30)
-      .attr("xlink:href", "./images/arrowRight.png")
-      .attr("preserveAspectRatio", "none")
-      .attr("style", "object-fit: fill")
-      .on('click', () => splitShowNext(curStep));
-  } else {
-    arrowControlViz.selectAll("*").remove();
-    curSplitIndex = 1;
-
-    arrowControlViz.append("svg:image")
-      .attr("x", 110)
-      .attr("y", 420)
-      .attr("class", "arrow")
-      .attr("width", 20)
-      .attr("height", 30)
-      .attr("xlink:href", "./images/arrowLeft.png")
-      .attr("preserveAspectRatio", "none")
-      .attr("style", "object-fit: fill; opacity: 0.2");
-  
-    arrowControlViz.append("svg:image")
-      .attr("x", 150)
-      .attr("y", 420)
-      .attr("class", "arrow")
-      .attr("width", 20)
-      .attr("height", 30)
-      .attr("xlink:href", "./images/arrowRight.png")
-      .attr("preserveAspectRatio", "none")
-      .attr("style", "object-fit: fill; opacity: 0.2");
-    
+  let onClickFunction = { prev: undefined, next: undefined };
+  let opacity = draw ? 1 : 0.2;
+  switch(draw) {
+    case 'split':
+      onClickFunction = { prev: () => splitShowPrev(curStep), next: () => splitShowNext(curStep)}; 
+      break;
+    case 'find':
+      onClickFunction = { prev: () => findShowPrev(curStep), next: () => findShowNext(curStep)}; 
+      break;
+    default:
+      arrowControlViz.selectAll(".arrowText").remove();
+      onClickFunction = { prev: null, next: null };
+      break;
   }
 
+  arrowControlViz.selectAll(".arrow").remove();
+
+  arrowControlViz.append("svg:image")
+    .attr("x", 110)
+    .attr("y", 420)
+    .attr("class", "arrow")
+    .attr("width", 20)
+    .attr("height", 30)
+    .attr("xlink:href", "./images/arrowLeft.png")
+    .attr("preserveAspectRatio", "none")
+    .attr("style", `opacity: ${opacity}; object-fit: fill; cursor: ${draw ? 'pointer' : 'auto'};`)
+    .on('click', onClickFunction.prev ? onClickFunction.prev : null);
+
+  arrowControlViz.append("svg:image")
+    .attr("x", 150)
+    .attr("y", 420)
+    .attr("class", "arrow")
+    .attr("width", 20)
+    .attr("height", 30)
+    .attr("xlink:href", "./images/arrowRight.png")
+    .attr("preserveAspectRatio", "none")
+    .attr("style", `opacity: ${opacity}; object-fit: fill; cursor: ${draw ? 'pointer' : 'auto'};`)
+    .on('click', onClickFunction.next ? onClickFunction.next : null);
 }
 
 function drawTreeViz(source) {
@@ -625,7 +687,7 @@ function splitStepClicked(id) {
   updateButtonStates(id, 'split');
 
   curStep = id;
-  drawViz(curTree, cartesianArr, { drawControlArrows: true });
+  drawViz(curTree, cartesianArr, { drawControlArrows: 'split' });
 
   curSplitIndex = 0;
   drawSplit(id, curSplitIndex);
@@ -803,8 +865,8 @@ function drawViz(rtree = rtreeHistory[curStep], cartesianArr, config = {}) {
 
   drawTreeViz(rtree);
 
-  if (config.drawControlArrows === true) {
-    drawSplitFindControl(true);
+  if (config.drawControlArrows) {
+    drawSplitFindControl(config.drawControlArrows);
   } else {
     drawSplitFindControl(false);
   }
