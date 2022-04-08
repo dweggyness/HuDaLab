@@ -489,6 +489,7 @@ rbush.prototype = {
       }
 
       this._lastExhaustiveSplit = [...listOfSplits];
+      this._lastExhaustiveSplit.splice(0, this._lastExhaustiveSplit.length / 2);
       // return index;
     },
 
