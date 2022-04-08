@@ -10,9 +10,10 @@ const stepsDisplayWidth = width - vizWidth;
 const margin = 15;
 const borderWidth = 1.5;
 const darkgray = "#555555";
-const gray = "#8c8c8c";
-const lightgray = "#ececec";
-const lightblue = "#e0e9fa";
+const grayFill = "#8c8c8c";
+const lightGrayFill = "#ececec";
+const darkBlueFill = "#146396";
+const blueFill = "#e0e9fa";
 const greenFill = "#99cc66";
 const greenStroke = "#04a700";
 const orangeFill = 'orange';
@@ -48,12 +49,12 @@ const onNodeHover = (node) => {
 
   treeNode.select("rect")
     .transition()
-    .attr("fill", "skyblue")
+    .attr("fill", blueFill)
   treeNode.raise();
 
   cartesianNode.select("rect")
     .transition()
-    .attr("fill", "skyblue");
+    .attr("fill", blueFill);
 }
 
 // on node unhover, we reset the style of that node to its original state
@@ -68,7 +69,7 @@ const onNodeUnhover = (node) => {
   // reset colour of the node, now that it is unhovered
   treeNode.select("rect")
     .transition()
-    .attr("fill", (d) => d.data.fill || lightgray )
+    .attr("fill", (d) => d.data.fill || lightGrayFill )
 
   cartesianNode.select("rect")
     .transition()
@@ -356,7 +357,7 @@ function drawTreeViz(source) {
     .attr("width", nodeWidth)
     .attr("height", nodeHeight)
     .attr("class", "treeRect")
-    .attr("fill", (d) => d.data.fill || lightgray)
+    .attr("fill", (d) => d.data.fill || lightGrayFill)
     .attr("stroke", (d) => d.data.stroke || darkgray)
     .on('mouseover', (d, i) => {
       onNodeHover(i);
@@ -364,7 +365,7 @@ function drawTreeViz(source) {
     .on('mouseout', (d, i) => {
       onNodeUnhover(i);
     })
-    .attr("style", "fill-opacity: 0.5")
+    .attr("style", "border-radius: 2px; border-width: 1px; fill-opacity: 0.5")
     .transition()
     .attr("transform", d => {
       return `translate(${d.x - nodeWidth / 2}, ${d.y - nodeHeight / 2})`
@@ -386,7 +387,7 @@ function drawTreeViz(source) {
   // update
   var nodeUpdate = node
     .select("rect")
-    .attr("fill", (d) => d.data.fill || lightgray)
+    .attr("fill", (d) => d.data.fill || lightGrayFill)
     .attr("stroke", (d) => d.data.stroke || darkgray)
     .transition()
     .duration(500)
@@ -404,7 +405,7 @@ function drawTreeViz(source) {
 
   node.select("rect")
     .attr("fill", (d) => {
-      return d.data.fill || lightgray
+      return d.data.fill || lightGrayFill
     })
 
   const arrows = treeViz.selectAll("path").data(links);
@@ -597,6 +598,8 @@ function updateButtonStates(id, type) {
   let bboxID = id;
   let nodeID = id;
 
+  console.log(id, type);
+
   if (type === 'split') {
     nodeID--;
   }
@@ -622,6 +625,7 @@ function updateButtonStates(id, type) {
 
   // update BBOX buttons
   for (let i = 0; i <= bboxID; i++ ) {
+    console.log("bbox", i);
     rtreeSteps[i].subSteps.bbox = true;
   }
   // color all nodes after this gray
@@ -632,11 +636,13 @@ function updateButtonStates(id, type) {
   // update NODE buttons
   // color all nodes before this one ( incl this one ) blue
   for (let i = 0; i <= nodeID; i++ ) {
-    rtreeSteps[i].color = "skyblue";
+    rtreeSteps[i].color = blueFill;
+    rtreeSteps[i].textColor = darkBlueFill;
   }
   // color all nodes after this gray
   for (let i = nodeID + 1; i < rtreeSteps.length; i++ ) {
-    rtreeSteps[i].color = lightgray;
+    rtreeSteps[i].color = lightGrayFill;
+    rtreeSteps[i].textColor = grayFill;
   }
 
   // update SPLIT buttons
@@ -651,6 +657,7 @@ function updateButtonStates(id, type) {
     rtreeSteps[i].subSteps.split = false;
   }
 
+  drawSteps();
 }
 
 // draw a polygon for the current node to be inserted
@@ -691,7 +698,7 @@ function findStepClicked(id) {
 function fullStepClicked(id) {
   updateButtonStates(id, 'node');
 
-  changeStep(id + 1);
+  drawViz(rtreeHistory[id + 1]);
 }
 
 // draw the steps on the left, clickable to bring the viz to that specific state
@@ -713,9 +720,8 @@ function drawSteps() {
     .attr("y", (d, i) => (stepVGap + nodeHeight )* i)
     .attr("width", nodeWidth)
     .attr("height", nodeHeight)
-    .attr("fill", (d) => d.color || lightgray)
-    .attr("stroke", darkgray)
-    .attr("style", "cursor: pointer")
+    .attr("fill", (d) => d.color || lightGrayFill)
+    .attr("style", "border-radius: 2px; border-width: 1px; cursor: pointer;")
     .on("click", (d, obj) => {
       fullStepClicked(obj.id);
       drawSteps();
@@ -726,6 +732,7 @@ function drawSteps() {
     .attr("x", stepsWidth - margin - (nodeWidth / 2) - 9)
     .attr("y", (d, i) => (stepVGap + nodeHeight ) * i)
     .attr("dy", ".92em")
+    .attr("fill", (d) => d.textColor || grayFill )
     .text(d => {
       return d.node;
     })
@@ -734,8 +741,11 @@ function drawSteps() {
 
   node.select("rect")
     .attr("fill", (d) => {
-      return d.color || lightgray
+      return d.color || lightGrayFill
     })
+
+  node.select("text") 
+    .attr("fill", (d) => d.textColor || grayFill )
     
   node.exit().remove();
 
@@ -753,9 +763,8 @@ function drawSteps() {
     .attr("y", (d, i) => (stepVGap + nodeHeight )* i)
     .attr("width", nodeWidth)
     .attr("height", nodeHeight)
-    .attr("fill", (d) => d.subSteps.bbox ?  "skyblue" : lightgray)
-    .attr("stroke", darkgray)
-    .attr("style", "cursor: pointer")
+    .attr("fill", (d) => d.subSteps.bbox ?  blueFill : lightGrayFill)
+    .attr("style", "border-radius: 2px; border-width: 1px; cursor: pointer;")
     .on("click", (d, obj) => {
       bboxStepClicked(obj.id);
       drawSteps();
@@ -767,11 +776,14 @@ function drawSteps() {
     .attr("y", (d, i) => (stepVGap + nodeHeight ) * i)
     .attr("dy", ".92em")
     .text("bbox")
+    .attr("fill", (d) => d.subSteps.bbox ?  darkBlueFill : grayFill)
     .attr("style", "pointer-events: none;");
 
-
   bboxNode.select("rect")
-    .attr("fill", (d) => d.subSteps.bbox ?  "skyblue" : lightgray)
+    .attr("fill", (d) => d.subSteps.bbox ?  blueFill : lightGrayFill)
+    
+  bboxNode.select("text") 
+    .attr("fill", (d) => d.subSteps.bbox ?  darkBlueFill : grayFill)
     
   bboxNode.exit().remove();
 
@@ -789,9 +801,8 @@ function drawSteps() {
     .attr("y", (d, i) => (stepVGap + nodeHeight )* i)
     .attr("width", nodeWidth)
     .attr("height", nodeHeight)
-    .attr("fill", (d) => d.subSteps.find ?  "skyblue" : lightgray)
-    .attr("stroke", darkgray)
-    .attr("style", "cursor: pointer")
+    .attr("fill", (d) => d.subSteps.find ? blueFill : lightGrayFill)
+    .attr("style", "border-radius: 2px; border-width: 1px; cursor: pointer;")
     .on("click", (d, obj) => {
       findStepClicked(obj.id);
       drawSteps();
@@ -802,11 +813,15 @@ function drawSteps() {
     .attr("x", stepHGap + nodeWidth + 4)
     .attr("y", (d, i) => (15 + nodeHeight ) * i)
     .attr("dy", ".92em")
+    .attr("fill", (d) => d.subSteps.find ?  darkBlueFill : grayFill)
     .text("find")
     .attr("style", "pointer-events: none;");
 
   findNode.select("rect")
-    .attr("fill", (d) => d.subSteps.find ?  "skyblue" : lightgray)
+    .attr("fill", (d) => d.subSteps.find ? blueFill : lightGrayFill)
+
+  findNode.select("text") 
+    .attr("fill", (d) => d.subSteps.find ? darkBlueFill : grayFill)
     
   findNode.exit().remove();
 
@@ -826,9 +841,8 @@ function drawSteps() {
     .attr("y", d => (stepVGap + nodeHeight )* d.id)
     .attr("width", nodeWidth)
     .attr("height", nodeHeight)
-    .attr("fill", (d) => d.subSteps.split ?  "skyblue" : lightgray)
-    .attr("stroke", darkgray)
-    .attr("style", "cursor: pointer")
+    .attr("fill", (d) => d.subSteps.split ? blueFill : lightGrayFill)
+    .attr("style", "border-radius: 2px; border-width: 1px; cursor: pointer;")
     .on("click", (d, obj) => {
       splitStepClicked(obj.id);
       drawSteps();
@@ -839,13 +853,16 @@ function drawSteps() {
     .attr("x", (stepHGap + nodeWidth) * 2 + 4)
     .attr("y", d => (15 + nodeHeight ) * d.id)
     .attr("dy", ".92em")
+    .attr("fill", (d) => d.subSteps.split ? darkBlueFill : grayFill)
     .text("split")
     .attr("style", "pointer-events: none;");
 
-
   splitNode.select("rect")
-    .attr("fill", (d) => d.subSteps.split ?  "skyblue" : lightgray)
+    .attr("fill", (d) => d.subSteps.split ?  blueFill : lightGrayFill)
     
+  splitNode.select("text") 
+    .attr("fill", (d) => d.subSteps.split ? darkBlueFill : grayFill)
+
   splitNode.exit().remove();
 }
 
@@ -874,18 +891,6 @@ function drawViz(rtree = rtreeHistory[curStep], cartesianArr, config = {}) {
   }
 }
 
-
-// updates the visualization to a certain step. 
-function changeStep(step) {
-  if (step >= 0 && step <= rtreeHistory.length) {
-    curStep = step; // step 1 is index 0 in the arr
-  }
-
-  // update the tree/cartesian arrays using the info
-  // update the visualization 
-  drawViz(rtreeHistory[curStep]);
-}
-
 const rtreeInsertionOrder = [
   { node: "N1", id: 0, minX: 1, minY: 16, maxX: 3, maxY: 19, polygon: "./images/polygon-1.png"},
   { node: "N2", id: 1, minX: 3, minY: 12, maxX: 5, maxY: 14, polygon: "./images/polygon-4.png"}, // point
@@ -908,7 +913,7 @@ for (let obj of rtreeSteps) {
     find: false
   }
 }
-rtreeSteps[0].color = "skyblue";
+rtreeSteps[0].color = blueFill;
 rtreeSteps[0].subSteps = {
   find: true,
   bbox: true,
@@ -1002,9 +1007,9 @@ function main() {
   .attr("id", "cartesianVizContainer");
 
   setupCartesianViz();
-  drawSteps();
 
-  changeStep(curStep); 
+  fullStepClicked(0);
+  drawSteps();
 }
 
 main();
