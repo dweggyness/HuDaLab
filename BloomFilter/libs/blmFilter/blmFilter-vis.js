@@ -356,7 +356,7 @@ function BFT_vis() {
       ;
   svg.append("text")
       .text("Hash functions")
-      .attr("x", 600)
+      .attr("x", 550)
       .attr("y", 10)
       .attr("class", "section-title")
       ;
@@ -365,73 +365,104 @@ function BFT_vis() {
   let hash0Text = vizSection
       .append("text")
         .text("Hash")
-        .attr("x", 500)
+        .attr("x", 450)
         .attr("y", -20)
         ;
   let hash1Text = vizSection
       .append("text")
         .text("Hash function 1 result:")
         .attr("id", "hashText1")
-        .attr("x", 500)
+        .attr("x", 450)
         .attr("y", 10)
+        ;
+  let hash1FunctionText = vizSection
+      .append("text")
+        .text("( Summation Hash:  Hash += ASCII of letter )")
+        .attr("id", "hashFunctionText1")
+        .attr("x", 450)
+        .attr("y", 30)
         ;
   let hash2Text = vizSection
       .append("text")
         .text("Hash function 2 result:")
         .attr("id", "hashText2")
-        .attr("x", 500)
-        .attr("y", 40)
+        .attr("x", 450)
+        .attr("y", 60)
+        ;
+  let hash2FunctionText = vizSection
+      .append("text")
+        .text("( Quadratic Hash:  Hash += ASCII of letter * 19^(Index of letter))")
+        .attr("id", "hashFunctionText2")
+        .attr("x", 450)
+        .attr("y", 80)
         ;
   let hash3Text = vizSection
       .append("text")
         .text("Hash function 3 result:")
         .attr("id", "hashText3")
-        .attr("x", 500)
-        .attr("y", 70)
+        .attr("x", 450)
+        .attr("y", 110)
         ;
+  
+  let hash3FunctionText = vizSection
+        .append("text")
+          .text("( Polynomial Hash:  Hash = Hash * 31 + ASCII of letter )")
+          .attr("id", "hashFunctionText3")
+          .attr("x", 450)
+          .attr("y", 130)
+          ;
   let hash4Text = vizSection
       .append("text")
         .text("Hash function 4 result:")
         .attr("id", "hashText4")
-        .attr("x", 500)
-        .attr("y", 100)
+        .attr("x", 450)
+        .attr("y", 160)
         .attr("display", "none")
         ;
+
+  let hash4FunctionText = vizSection
+        .append("text")
+          .text("( Cyclic Hash:  Hash = (Hash<<3) + ASCII of letter )")
+          .attr("id", "hashFunctionText4")
+          .attr("x", 450)
+          .attr("y", 180)
+          .attr("display", "none")
+          ;
 
   let hashStr = vizSection
       .append("text")
         .attr("id", "hashStr")
         .text("string")
-        .attr("x", 550)
+        .attr("x", 500)
         .attr("y", -20)
         ;
   let hash1Result = vizSection
       .append("text")
         .attr("id", "hash1Res")
         .text("Res1")
-        .attr("x", 675)
+        .attr("x", 625)
         .attr("y", 10)
         ;
   let hash2Result = vizSection
       .append("text")
         .attr("id", "hash2Res")
         .text("Res2")
-        .attr("x", 675)
-        .attr("y", 40)
+        .attr("x", 625)
+        .attr("y", 60)
         ;
   let hash3Result = vizSection
       .append("text")
         .attr("id", "hash3Res")
         .text("Res3")
-        .attr("x", 675)
-        .attr("y", 70)
+        .attr("x", 625)
+        .attr("y", 110)
         ;
   let hash4Result = vizSection
       .append("text")
         .attr("id", "hash4Res")
         .text("Res4")
-        .attr("x", 675)
-        .attr("y", 100)
+        .attr("x", 625)
+        .attr("y", 160)
         .attr("display", "none")
         ;
 
@@ -533,13 +564,30 @@ function BFT_vis() {
       .attr("display", "none")
       ;
 
+    const INPUT_ARRAY = [
+      'cat', 'cattle', 'dog', 'donkey', 'goat',
+      'horse', 'pig', 'rabbit', 'chicken', 'alligator',
+      'buffalo', 'elephant', 'leopard', 'pigeon', 'duck',
+      'goose', 'sheep', 'albatross', 'robin', 'alpaca',
+      'anaconda', 'angelfish', 'fox', 'crab', 'ape',
+      'ant', 'bat', 'bee', 'bison', 'whale',
+      'butterfly', 'camel', 'caterpillar', 'cheetah',
+      'chameleon', 'crane', 'cow', 'deer', 'dolphin',
+      'worm', 'eel', 'falcon', 'flamingo', 'frog',
+      'panda', 'squid', 'giraffe', 'gibbon', 'bear',
+      'hawk', 'hedgehog', 'hippo', 'horse', 'hornet',
+      'hyena', 'kangaroo', 'iguana', 'koi', 'ladybug',
+      'snail', 'mackarel', 'lobster', 'llama', 'manta',
+      'lizard', 'mouse', 'ocelot', 'octopus', 'owl',
+      'ox', 'otter', 'ostrich', 'orca', 'parrot',
+      'piranha', 'pony', 'possum', 'raccoon', 'reindeer',
+      'salmon', 'lion', 'slug', 'shrimp', 'sloth',
+      'stingray', 'tapir', 'termite', 'tiger', 'spider',
+      'toad', 'warbler', 'wolf', 'zebra', 'turkey',
+      'goldfish', 'guppy', 'dove', 'vulture', 'weasel',
+      'raven', 'pigeon', 'eagle', 'falcon', 'flamingo',
+    ]
 
-
-
-  const INPUT_ARRAY = [
-    'cat', 'dog', 'fish', 'hippo', 'owl', 'tiger', 'elephant',
-    'parrot', 'giraffe', 'chicken', 'hamster', 'sheep'
-  ]
   var arraySize = 20;
   var hashSize = 3;
 
@@ -692,8 +740,8 @@ function BFT_vis() {
     newIniNum = parseFloat(userNum.value);
     userNum.value = '';
     // check if num is valid
-    if (newIniNum < 0 || newIniNum % 1 !== 0 || newIniNum > 12){
-      alert("Please enter a valid number! \n A valid number is a Positive Integer smaller than 13.")
+    if (newIniNum < 0 || newIniNum % 1 !== 0 || newIniNum > 30){
+      alert("Please enter a valid number! \n A valid number is a positive integer <= 30.")
       newIniNum = null;
     } else {
       // reset BFT
@@ -850,6 +898,7 @@ function BFT_vis() {
     // show or hide hash results
     for (var i = 1; i < 6; i++) {
       svg.select("#hashText" + i).attr("display", i <= BFT.hashSize ? "block":"none");
+      svg.select("#hashFunctionText" + i).attr("display", i <= BFT.hashSize ? "block":"none");
       svg.select("#hash" + i +"Res").attr("display", i <= BFT.hashSize ? "block":"none");
       svg.select("#hash" + i + "ResBBox").attr("display", i <= BFT.hashSize ? "block":"none");
     }

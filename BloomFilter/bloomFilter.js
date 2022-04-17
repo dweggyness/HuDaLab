@@ -168,8 +168,27 @@ function main() {
   const BFT = new BloomFilter(20);
 
   const INPUT_ARRAY = [
-    'cat', 'dog', 'fish', 'hippo', 'owl', 'tiger', 'elephant',
-    'parrot', 'giraffe', 'chicken', 'hamster', 'sheep'
+    'cat', 'cattle', 'dog', 'donkey', 'goat',
+    'horse', 'pig', 'rabbit', 'chicken', 'alligator',
+    'buffalo', 'elephant', 'leopard', 'pigeon', 'duck',
+    'goose', 'sheep', 'albatross', 'robin', 'alpaca',
+    'anaconda', 'angelfish', 'fox', 'crab', 'ape',
+    'ant', 'bat', 'bee', 'bison', 'whale',
+    'butterfly', 'camel', 'caterpillar', 'cheetah',
+    'chameleon', 'crane', 'cow', 'deer', 'dolphin',
+    'worm', 'eel', 'falcon', 'flamingo', 'frog',
+    'panda', 'squid', 'giraffe', 'gibbon', 'bear',
+    'hawk', 'hedgehog', 'hippo', 'horse', 'hornet',
+    'hyena', 'kangaroo', 'iguana', 'koi', 'ladybug',
+    'snail', 'mackarel', 'lobster', 'llama', 'manta',
+    'lizard', 'mouse', 'ocelot', 'octopus', 'owl',
+    'ox', 'otter', 'ostrich', 'orca', 'parrot',
+    'piranha', 'pony', 'possum', 'raccoon', 'reindeer',
+    'salmon', 'lion', 'slug', 'shrimp', 'sloth',
+    'stingray', 'tapir', 'termite', 'tiger', 'spider',
+    'toad', 'warbler', 'wolf', 'zebra', 'turkey',
+    'goldfish', 'guppy', 'dove', 'vulture', 'weasel',
+    'raven', 'pigeon', 'eagle', 'falcon', 'flamingo',
   ]
 
   shuffle(INPUT_ARRAY);
@@ -178,7 +197,7 @@ function main() {
   // higher chance of false positives if you insert more elements
   // or if the BFT size is smaller
   
-  // maximum of 12 elementts please theres only 12 elements in INPUT_ARRAY
+  // maximum of 100 elementts please theres only 100 elements in INPUT_ARRAY
   const NUM_ELEMS_TO_INSERT = 6;
 
   // random search for X strings into the Bloom Filter
