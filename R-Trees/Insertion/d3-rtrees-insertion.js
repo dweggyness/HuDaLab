@@ -25,6 +25,7 @@ const nodeWidth = 34;
 let curStep = 1;
 let curSplitIndex = 0;
 let curFindIndex = 0;
+let onBestSplit = false;
 
 const rtreeHistory = [];
 var id = 0;
@@ -145,6 +146,30 @@ function findShowNext(id) {
   drawFind(id, curFindIndex);
 }
 
+// get the index of the best split out of the split list
+function getBestSplitIndex(id) {
+  // get current node to be inserted into the 
+  const curNode = rtreeInsertionOrder[id];
+  // list of checked splits
+  const splitArr = rtreeHistory[id+1]._lastExhaustiveSplit;
+
+  if (!splitArr || splitArr.length == 0) {
+    return -1;
+  }
+
+  const curTree = cloneTree(rtreeHistory[id+1]);
+  const subtreePath = curTree.getBestSubtree(curNode);
+  const parentNode = subtreePath[subtreePath.length - 1]; // last index, the parent node, not grandparent/greatgrandparent etc
+
+  // best split index
+  const bestSplitIndex = splitArr.findIndex((x) => {
+    return getKey(x.bbox1) === getKey(parentNode) ||
+      getKey(x.bbox2) === getKey(parentNode)
+  });
+
+  return bestSplitIndex;
+}
+
 // draw the splits, use arrows to control which # split to see. 
 function drawSplit(id, splitIndex) {
   const curTree = cloneTree(rtreeHistory[id]);
@@ -158,17 +183,13 @@ function drawSplit(id, splitIndex) {
   const splitArr = rtreeHistory[id+1]._lastExhaustiveSplit;
   const curSplit = splitArr[splitIndex];
 
-
-  // check which one is the best split
-  const curTree2 = cloneTree(rtreeHistory[id+1]);
-  const subtreePath2 = curTree2.getBestSubtree(curNode);
-  const parentNode2 = subtreePath2[subtreePath2.length - 1]; // last index, the parent node, not grandparent/greatgrandparent etc
-
   // best split index
-  const bestSplitIndex = splitArr.findIndex((x) => {
-    return getKey(x.bbox1) === getKey(parentNode2) ||
-      getKey(x.bbox2) === getKey(parentNode2)
-  });
+  const bestSplitIndex = getBestSplitIndex(id);
+  if (curSplitIndex === bestSplitIndex) {
+    onBestSplit = true;
+  } else {
+    onBestSplit = false;
+  }
 
   // push the two split bounding boxes
   cartesianArr.push({ ...rtreeInsertionOrder[id], highlight: 'red' })
@@ -481,12 +502,21 @@ function setupCartesianViz() {
     .attr("width", graphWidth)
     .attr("height", borderWidth);
 
+  const background = cartesianViz
+    .append("rect")
+    .attr('id', "cartesianVizBackground")
+    .attr("transform", `translate(${margin}, ${margin * 2})`)
+    .attr("width", graphWidth)
+    .attr("height", cartesianVizHeight - margin * 3);
+
 }
 
 const effectiveCartesianVizHeight = cartesianVizHeight - margin * 2;
 
 // draw the cartesian/graph view of the r-tree. to the right
 function drawCartesianViz(rtreeArr) {
+  const cartesianViz = d3.select("#cartesianVizContainer")
+
   const rtree = rtreeArr;
   // run some preprocessing for every node
   for (let i = 0; i < rtree.length; i++) {
@@ -500,8 +530,14 @@ function drawCartesianViz(rtreeArr) {
     curNode.id = getKey(curNode)
   }
 
-  const cartesianViz = d3.select("#cartesianVizContainer")
-  cartesianViz.transition();
+  // currently on best split at split state, so color cartesian viz green
+  if (onBestSplit) {
+    cartesianViz.select('#cartesianVizBackground')
+      .attr("fill", 'rgba(150, 255, 150, 0.2)')
+  } else {
+    cartesianViz.select('#cartesianVizBackground')
+      .attr("fill", 'none')
+  }
 
   const scaleX = graphWidth / 20;
   const scaleY = effectiveCartesianVizHeight / 20;
@@ -597,8 +633,8 @@ function updateButtonStates(id, type) {
   let findID = id;
   let bboxID = id;
   let nodeID = id;
-
-  console.log(id, type);
+  
+  onBestSplit = false;
 
   if (type === 'split') {
     nodeID--;
@@ -682,7 +718,8 @@ function bboxStepClicked(id) {
 function splitStepClicked(id) {
   updateButtonStates(id, 'split');
 
-  curSplitIndex = 0;
+  // start at the best split
+  curSplitIndex = getBestSplitIndex(id);
   drawSplit(id, curSplitIndex);
 }
 
