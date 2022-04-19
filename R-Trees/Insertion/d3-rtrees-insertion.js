@@ -393,7 +393,7 @@ function drawTreeViz(source) {
     .on('mouseout', (d, i) => {
       onNodeUnhover(i);
     })
-    .attr("style", "border-radius: 2px; border-width: 1px; fill-opacity: 0.5")
+    .attr("style", "border-radius: 2px; border-width: 1px;")
     .transition()
     .attr("transform", d => {
       return `translate(${d.x - nodeWidth / 2}, ${d.y - nodeHeight / 2})`
@@ -582,13 +582,11 @@ function drawCartesianViz(rtreeArr) {
     .attr("y", (d) => margin + d.minY * scaleY)
     .attr("width", (d) => d.width * scaleX)
     .attr("height",(d) => d.height * scaleY)
+    .attr('fill', (d) => d.fill || 'none')
     .attr("style", (d) => 
       d.notVisible 
         ? `outline: 0px`
-        : `outline: 1px solid ${d.highlight ? d.highlight : 'black'};
-          fill-opacity: 0.5;
-          fill: ${d.fill ? d.fill : 'none'};
-        `
+        : `outline: 1px solid ${d.highlight ? d.highlight : 'black'};`
     );
 
   nodeEnter.append("svg:image")
@@ -614,13 +612,11 @@ function drawCartesianViz(rtreeArr) {
   node.select("rect")
     .attr("x", (d) => margin + d.minX * scaleX)
     .attr("y", (d) => margin + d.minY * scaleY)
+    .attr('fill', (d) => d.fill || 'none')
     .attr("style", (d) => 
       d.notVisible 
         ? `outline: 0px`
-        : `outline: 1px solid ${d.highlight ? d.highlight : 'black'};
-          fill-opacity: 0.5;
-          fill: ${d.fill ? d.fill : 'none'};
-        `
+        : `outline: 1px solid ${d.highlight ? d.highlight : 'black'};`
     );
 
   node.select(".cartesianPolygon")
