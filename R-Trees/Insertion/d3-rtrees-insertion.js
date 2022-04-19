@@ -561,6 +561,18 @@ function drawCartesianViz(rtreeArr) {
     .append("g")
     .attr("class", "cartesianNode")
 
+  nodeEnter.append("rect")
+    .attr("x", (d) => margin + d.minX * scaleX)
+    .attr("y", (d) => margin + d.minY * scaleY)
+    .attr("width", (d) => d.width * scaleX)
+    .attr("height",(d) => d.height * scaleY)
+    .attr('fill', (d) => d.fill || 'none')
+    .attr("style", (d) => 
+      d.notVisible 
+        ? `outline: 0px`
+        : `outline: 1px solid ${d.highlight ? d.highlight : 'black'};`
+  );
+
   nodeEnter.append("text")
     .text((d) => { 
       if (d.notVisible) return "";
@@ -579,20 +591,8 @@ function drawCartesianViz(rtreeArr) {
       }
       return margin + d.minY * scaleY + 20;
     })
-    .attr("style", "pointer-events: none;");
+    .attr("style", "pointer-events: none;")
     
-  nodeEnter.append("rect")
-    .attr("x", (d) => margin + d.minX * scaleX)
-    .attr("y", (d) => margin + d.minY * scaleY)
-    .attr("width", (d) => d.width * scaleX)
-    .attr("height",(d) => d.height * scaleY)
-    .attr('fill', (d) => d.fill || 'none')
-    .attr("style", (d) => 
-      d.notVisible 
-        ? `outline: 0px`
-        : `outline: 1px solid ${d.highlight ? d.highlight : 'black'};`
-    );
-
   nodeEnter.append("svg:image")
     .attr("x", (d) => margin + d.minX * scaleX)
     .attr("y", (d) => margin + d.minY * scaleY)
@@ -621,7 +621,7 @@ function drawCartesianViz(rtreeArr) {
       d.notVisible 
         ? `outline: 0px`
         : `outline: 1px solid ${d.highlight ? d.highlight : 'black'};`
-    );
+    )
 
   node.select(".cartesianPolygon")
     .attr("style", (d) => 
