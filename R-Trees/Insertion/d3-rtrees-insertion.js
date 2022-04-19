@@ -194,12 +194,29 @@ function drawSplit(id, splitIndex) {
 
   // push the two split bounding boxes
   cartesianArr.push({ ...rtreeInsertionOrder[id], highlight: 'red' })
-  cartesianArr.push({ ...curSplit.bbox1, highlight: 'blue' });
-  cartesianArr.push({ ...curSplit.bbox2, highlight: 'purple' });
-  
+  cartesianArr.push({ ...curSplit.bbox1, highlight: 'rgb(217, 207, 91)' });
+  cartesianArr.push({ ...curSplit.bbox2, highlight: 'rgb(95, 75, 139)' });
+
+  // color the split nodes, grouping them by color. e.g the 2 nodes in split 1 is colored X, nodes in split 2 is colored Y
+  for (const bbox1Node of curSplit.bbox1Nodes) {
+    // for each node in split 1, we highlight it a certain color in the cartesian arr
+    const node = bbox1Node.node;
+    
+    const index = cartesianArr.findIndex((x) => x.node === node);
+    cartesianArr[index] = { ...cartesianArr[index], fill: 'rgb(217, 207, 91, 0.3)' };
+  }
+
+  for (const bbox2Node of curSplit.bbox2Nodes) {
+    // for each node in split2, we highlight it a certain color in the cartesian arr
+    const node = bbox2Node.node;
+    
+    const index = cartesianArr.findIndex((x) => x.node === node);
+    cartesianArr[index] = { ...cartesianArr[index], fill: "rgba(95, 75, 139, 0.3)" };
+  }
+
   // there is an overlap area in the split, we draw a rectangle to show the overlap
   if (curSplit.hasOverlap) {  
-    cartesianArr.push({ ...curSplit.overlapBBox, fill: "rgba(255, 150, 150, 0.15)" });
+    cartesianArr.unshift({ ...curSplit.overlapBBox, fill: "rgba(255, 150, 150, 0.3)" });
   }
 
   // hide the parent node of the current node 
@@ -218,16 +235,24 @@ function drawSplit(id, splitIndex) {
   arrowControlViz.selectAll(".arrowText").remove();
   arrowControlViz.append("text")
     .attr("x", 72)
-    .attr("y", 370)
+    .attr("y", 340)
     .attr("class", "arrowText")
     .text(`Showing split ${splitIndex + 1} out of ${splitArr.length}`)
     .attr("style", "pointer-events: none;");
 
   arrowControlViz.append("text")
     .attr("x", 72)
-    .attr("y", 400)
+    .attr("y", 370)
     .attr("class", "arrowText")
     .text(`The best split is split ${bestSplitIndex + 1}`)
+    .attr("style", "pointer-events: none;");
+
+  
+  arrowControlViz.append("text")
+    .attr("x", 78)
+    .attr("y", 400)
+    .attr("class", "arrowText")
+    .text(`Overlap area: ${curSplit.overlapArea}`)
     .attr("style", "pointer-events: none;");
 
   curStep = id;
@@ -239,8 +264,7 @@ function drawFind(id, findIndex) {
   curStep = id;
   const curTree = cloneTree(rtreeHistory[id]);
   const curNode = rtreeInsertionOrder[id];
-  const subtreePath = curTree.getBestSubtree(curNode);
-  const parentNode = subtreePath[subtreePath.length - 1];
+  // const subtreePath = curTree.getBestSubtree(curNode);
   let cartesianArr = curTree.allIncludingNonLeaf();
   cartesianArr.push(curTree.data); // include the root
 
@@ -261,24 +285,31 @@ function drawFind(id, findIndex) {
   
   if (bestFindIndex < 0) bestFindIndex = 0; // default
 
-  // push the bounding box of the 'Find' to the cartesian arr
-  cartesianArr.push({ ...curFind.bbox, highlight: 'blue', fill: 'rgba(150, 150, 255, 0.2)' });
-
   // hide the parent node of the current node 
   // from the cartesian view, to highlight the split boxes
-  cartesianArr = cartesianArr.filter((x) => {
-    if (getKey(x) == getKey(parentNode)) {
-      if (x.highlight != parentNode.highlight) {
-        return true;
-      }
-      return false;
-    }
-    return true;
-  });
+
+  // const parentNode = curFind.path[curFind.path.length - 1];
+  // cartesianArr = cartesianArr.map((x) => {
+  //   console.log(getKey(x), getKey(parentNode));
+  //   if (getKey(x) == getKey(parentNode)) {
+  //     // if (x.highlight != parentNode.highlight) {
+  //     //   return true;
+  //     // }
+  //     // return false;
+  //     return { ...x, fill: 'rgba(150, 150, 255, 0.5)'};
+  //   }
+  //   return x;
+  // });
+
+  const parentNode = curTree.data.children[findIndex];
+  if (parentNode) parentNode.fill = 'rgba(150, 150, 255, 0.2)';
   
   // append just the new node to be inserted 
   // without using the rbush's insert function ( so the bounding box of parents is not drawn )
   cartesianArr.push({ ...curNode, highlight: 'red' });
+
+  // push the bounding box of the 'Find' to the cartesian arr
+  cartesianArr.push({ ...curFind.bbox, highlight: 'blue', fill: orangeFill });
 
   cartesianArr = structuredClone(cartesianArr);
 
@@ -308,17 +339,25 @@ function drawFind(id, findIndex) {
   arrowControlViz.selectAll(".arrowText").remove();
   arrowControlViz.append("text")
     .attr("x", 72)
-    .attr("y", 370)
+    .attr("y", 340)
     .attr("class", "arrowText")
     .text(`Showing find ${findIndex + 1} out of ${findArr.length}`)
     .attr("style", "pointer-events: none;");
 
   arrowControlViz.append("text")
     .attr("x", 36)
-    .attr("y", 400)
+    .attr("y", 370)
     .attr("class", "arrowText")
     .text(`The best node to insert into is node ${bestFindIndex + 1}`)
     .attr("style", "pointer-events: none;");
+
+  arrowControlViz.append("text")
+    .attr("x", 78)
+    .attr("y", 400)
+    .attr("class", "arrowText")
+    .text(`Expansion area: ${curFind.area}`)
+    .attr("style", "pointer-events: none;");
+
 
   curStep = id;
 
@@ -541,13 +580,22 @@ function drawCartesianViz(rtreeArr) {
     curNode.id = getKey(curNode)
   }
 
+  console.log('before', JSON.parse(JSON.stringify(rtree)));
+  rtree.sort((a,b) => (a.node < b.node) ? 1 : ((b.node < a.node || a.node == undefined ) ? -1 : 0))
+  console.log('after', JSON.parse(JSON.stringify(rtree)));
+
   // currently on best split at split state, so color cartesian viz green
   if (colorCartesianVizGreen) {
     cartesianViz.select('#cartesianVizBackground')
-      .attr("fill", 'rgba(150, 255, 150, 0.15)')
+      .attr('fill', 'none')
+      .attr("stroke", 'rgba(150, 255, 150, 0.3)')
+      .attr("stroke-width", '10')
+      .attr("style", "box-sizing:border-box;");
   } else {
     cartesianViz.select('#cartesianVizBackground')
-      .attr("fill", 'none')
+      .attr('fill', 'none')
+      .attr("stroke", 'none')
+      .attr("stroke-width", 'none')
   }
 
   const scaleX = graphWidth / 20;

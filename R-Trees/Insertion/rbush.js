@@ -296,11 +296,13 @@ rbush.prototype = {
 
             if (node.leaf || path.length - 1 === level) {
               if (this._lastFindArr.length == 0) {
+                area = bboxArea(node);
+
                 const clonedBBox = structuredClone(bbox);
                 const extendedBBox = extend(clonedBBox, this.toBBox(node));
                 extendedBBox.node = null;
                 extendedBBox.polygon = null;
-                this._lastFindArr.push({ bbox: extendedBBox, path: path[path.length - 1] });
+                this._lastFindArr.push({ bbox: extendedBBox, path, area });
               }
               break;
             }
@@ -315,9 +317,10 @@ rbush.prototype = {
                 const extendedBBox = extend(clonedBBox, this.toBBox(child));
                 extendedBBox.node = null;
                 extendedBBox.polygon = null;
-                this._lastFindArr.push({ bbox: extendedBBox, path: path[path.length - 1] });
 
                 enlargement = enlargedArea(bbox, child) - area;
+
+                this._lastFindArr.push({ bbox: extendedBBox, path, area: enlargement });
 
                 // choose entry with the least area enlargement
                 if (enlargement < minEnlargement) {
@@ -468,7 +471,14 @@ rbush.prototype = {
           overlap = intersectionArea(bbox1, bbox2);
           let hasOverlap = overlap.overlapArea > 0 ? true : false;
 
-          listOfSplits.push({ bbox1, bbox2, overlapBBox: overlap.overlapBBox, hasOverlap });
+          listOfSplits.push({ bbox1,
+            bbox2, 
+            bbox1Nodes: [splitNode1, splitNode2],
+            bbox2Nodes: [splitNode3, splitNode4],
+            overlapBBox: overlap.overlapBBox, 
+            overlapArea: overlap.overlapArea,
+            hasOverlap 
+          });
 
 
           // area = bboxArea(bbox1) + bboxArea(bbox2);
