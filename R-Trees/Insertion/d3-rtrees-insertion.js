@@ -580,9 +580,7 @@ function drawCartesianViz(rtreeArr) {
     curNode.id = getKey(curNode)
   }
 
-  console.log('before', JSON.parse(JSON.stringify(rtree)));
   rtree.sort((a,b) => (a.node < b.node) ? 1 : ((b.node < a.node || a.node == undefined ) ? -1 : 0))
-  console.log('after', JSON.parse(JSON.stringify(rtree)));
 
   // currently on best split at split state, so color cartesian viz green
   if (colorCartesianVizGreen) {
@@ -1104,8 +1102,7 @@ function main() {
 
   setupCartesianViz();
 
-  fullStepClicked(0);
-  drawSteps();
+  bboxStepClicked(0);
 }
 
 main();

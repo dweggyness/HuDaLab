@@ -297,6 +297,7 @@ rbush.prototype = {
             if (node.leaf || path.length - 1 === level) {
               if (this._lastFindArr.length == 0) {
                 area = bboxArea(node);
+                if (area === Infinity) area = 0;
 
                 const clonedBBox = structuredClone(bbox);
                 const extendedBBox = extend(clonedBBox, this.toBBox(node));
