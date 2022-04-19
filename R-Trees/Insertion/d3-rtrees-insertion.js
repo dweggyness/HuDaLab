@@ -16,7 +16,7 @@ const darkBlueFill = "#146396";
 const blueFill = "#e0e9fa";
 const greenFill = "#99cc66";
 const greenStroke = "#04a700";
-const orangeFill = 'orange';
+const orangeFill = 'rgba(227, 140, 68, 0.3)';
 const orangeStroke = 'darkorange';
 const nodeHeight = 17;
 const nodeWidth = 34;
@@ -25,7 +25,7 @@ const nodeWidth = 34;
 let curStep = 1;
 let curSplitIndex = 0;
 let curFindIndex = 0;
-let onBestSplit = false;
+let colorCartesianVizGreen = false;
 
 const rtreeHistory = [];
 var id = 0;
@@ -176,6 +176,7 @@ function drawSplit(id, splitIndex) {
   const curNode = rtreeInsertionOrder[id];
   const subtreePath = curTree.getBestSubtree(curNode);
   const parentNode = subtreePath[subtreePath.length - 1];
+
   let cartesianArr = curTree.allIncludingNonLeaf();
   cartesianArr.push(curTree.data); // include the root
 
@@ -186,9 +187,9 @@ function drawSplit(id, splitIndex) {
   // best split index
   const bestSplitIndex = getBestSplitIndex(id);
   if (curSplitIndex === bestSplitIndex) {
-    onBestSplit = true;
+    colorCartesianVizGreen = true;
   } else {
-    onBestSplit = false;
+    colorCartesianVizGreen = false;
   }
 
   // push the two split bounding boxes
@@ -197,10 +198,8 @@ function drawSplit(id, splitIndex) {
   cartesianArr.push({ ...curSplit.bbox2, highlight: 'purple' });
   
   // there is an overlap area in the split, we draw a rectangle to show the overlap
-  console.log('cursplit:', curSplit);
   if (curSplit.hasOverlap) {  
-    console.log('has overlap');
-    cartesianArr.push({ ...curSplit.overlapBBox, fill: "rgba(255, 150, 150, 0.3)" });
+    cartesianArr.push({ ...curSplit.overlapBBox, fill: "rgba(255, 150, 150, 0.15)" });
   }
 
   // hide the parent node of the current node 
@@ -262,10 +261,8 @@ function drawFind(id, findIndex) {
   
   if (bestFindIndex < 0) bestFindIndex = 0; // default
 
-
-  // push the bounding boxes to the cartesian arr
-  cartesianArr.push({ ...rtreeInsertionOrder[id], highlight: 'red' })
-  cartesianArr.push({ ...curFind.bbox, highlight: 'blue' });
+  // push the bounding box of the 'Find' to the cartesian arr
+  cartesianArr.push({ ...curFind.bbox, highlight: 'blue', fill: 'rgba(150, 150, 255, 0.2)' });
 
   // hide the parent node of the current node 
   // from the cartesian view, to highlight the split boxes
@@ -278,8 +275,18 @@ function drawFind(id, findIndex) {
     }
     return true;
   });
+  
+  // append just the new node to be inserted 
+  // without using the rbush's insert function ( so the bounding box of parents is not drawn )
+  cartesianArr.push({ ...curNode, highlight: 'red' });
+
+  cartesianArr = structuredClone(cartesianArr);
 
   const isBestInsert = findIndex === bestFindIndex;
+  // color cartesian background green if its the best find
+  colorCartesianVizGreen = isBestInsert;
+  
+
   const nodeFillColor = isBestInsert ? greenFill : orangeFill;
   const nodeStrokeColor = isBestInsert ? greenStroke : orangeStroke;
   // update the color of all nodes that is in the path of the current find 
@@ -296,10 +303,6 @@ function drawFind(id, findIndex) {
   if (curPath.children && curPath.children.length >= 3) { // parent node is full
     curPath.fullInsertNode = true;
   }
-
-  // append just the new node to be inserted 
-  // without using the rbush's insert function ( so the bounding box of parents is not drawn )
-  cartesianArr.push({ ...curNode, highlight: 'red' });
 
   const arrowControlViz = d3.select('#controllerContainer');
   arrowControlViz.selectAll(".arrowText").remove();
@@ -318,6 +321,8 @@ function drawFind(id, findIndex) {
     .attr("style", "pointer-events: none;");
 
   curStep = id;
+
+  console.log(cartesianArr);
   drawViz(curTree, cartesianArr, { drawControlArrows: "find" });
 }
 
@@ -538,9 +543,9 @@ function drawCartesianViz(rtreeArr) {
   }
 
   // currently on best split at split state, so color cartesian viz green
-  if (onBestSplit) {
+  if (colorCartesianVizGreen) {
     cartesianViz.select('#cartesianVizBackground')
-      .attr("fill", 'rgba(150, 255, 150, 0.2)')
+      .attr("fill", 'rgba(150, 255, 150, 0.15)')
   } else {
     cartesianViz.select('#cartesianVizBackground')
       .attr("fill", 'none')
@@ -642,7 +647,7 @@ function updateButtonStates(id, type) {
   let bboxID = id;
   let nodeID = id;
   
-  onBestSplit = false;
+  colorCartesianVizGreen = false;
 
   if (type === 'split') {
     nodeID--;
