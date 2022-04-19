@@ -465,10 +465,12 @@ rbush.prototype = {
           bbox2 = extend(bbox2, this.toBBox(splitNode3));
           bbox2 = extend(bbox2, this.toBBox(splitNode4));
 
-          listOfSplits.push({ bbox1, bbox2 });
+          overlap = intersectionArea(bbox1, bbox2);
+          let hasOverlap = overlap.overlapArea > 0 ? true : false;
+
+          listOfSplits.push({ bbox1, bbox2, overlapBBox: overlap.overlapBBox, hasOverlap });
 
 
-          // overlap = intersectionArea(bbox1, bbox2);
           // area = bboxArea(bbox1) + bboxArea(bbox2);
 
           // // choose distribution with minimum overlap
@@ -511,7 +513,7 @@ rbush.prototype = {
             bbox1 = distBBox(node, 0, i, this.toBBox);
             bbox2 = distBBox(node, i, M, this.toBBox);
 
-            overlap = intersectionArea(bbox1, bbox2);
+            overlap = intersectionArea(bbox1, bbox2).overlapArea;
             area = bboxArea(bbox1) + bboxArea(bbox2);
 
             // choose distribution with minimum overlap
@@ -668,8 +670,16 @@ function intersectionArea(a, b) {
         maxX = Math.min(a.maxX, b.maxX),
         maxY = Math.min(a.maxY, b.maxY);
 
-    return Math.max(0, maxX - minX) *
-           Math.max(0, maxY - minY);
+    let bbox = createNode(null);
+    bbox.minX = minX
+    bbox.minY = minY
+    bbox.maxX = maxX
+    bbox.maxY = maxY
+    
+    return { 
+      overlapArea: Math.max(0, maxX - minX) * Math.max(0, maxY - minY),
+      overlapBBox: bbox,
+    }
 }
 
 function contains(a, b) {

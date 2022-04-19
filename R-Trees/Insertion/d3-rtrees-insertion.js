@@ -195,6 +195,13 @@ function drawSplit(id, splitIndex) {
   cartesianArr.push({ ...rtreeInsertionOrder[id], highlight: 'red' })
   cartesianArr.push({ ...curSplit.bbox1, highlight: 'blue' });
   cartesianArr.push({ ...curSplit.bbox2, highlight: 'purple' });
+  
+  // there is an overlap area in the split, we draw a rectangle to show the overlap
+  console.log('cursplit:', curSplit);
+  if (curSplit.hasOverlap) {  
+    console.log('has overlap');
+    cartesianArr.push({ ...curSplit.overlapBBox, fill: "rgba(255, 150, 150, 0.3)" });
+  }
 
   // hide the parent node of the current node 
   // from the cartesian view, to highlight the split boxes
@@ -575,11 +582,13 @@ function drawCartesianViz(rtreeArr) {
     .attr("y", (d) => margin + d.minY * scaleY)
     .attr("width", (d) => d.width * scaleX)
     .attr("height",(d) => d.height * scaleY)
-    .attr("fill", (d) => 'none')
     .attr("style", (d) => 
       d.notVisible 
         ? `outline: 0px`
-        : `outline: 1px solid ${d.highlight ? d.highlight : 'black'}; fill-opacity: 0.5`
+        : `outline: 1px solid ${d.highlight ? d.highlight : 'black'};
+          fill-opacity: 0.5;
+          fill: ${d.fill ? d.fill : 'none'};
+        `
     );
 
   nodeEnter.append("svg:image")
@@ -608,7 +617,10 @@ function drawCartesianViz(rtreeArr) {
     .attr("style", (d) => 
       d.notVisible 
         ? `outline: 0px`
-        : `outline: 1px solid ${d.highlight ? d.highlight : 'black'}; fill-opacity: 0.5`
+        : `outline: 1px solid ${d.highlight ? d.highlight : 'black'};
+          fill-opacity: 0.5;
+          fill: ${d.fill ? d.fill : 'none'};
+        `
     );
 
   node.select(".cartesianPolygon")
