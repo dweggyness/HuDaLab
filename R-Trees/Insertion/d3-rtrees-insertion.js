@@ -14,7 +14,7 @@ const grayFill = "#8c8c8c";
 const lightGrayFill = "#ececec";
 const darkBlueFill = "#146396";
 const blueFill = "#e0e9fa";
-const greenFill = "#99cc66";
+const greenFill = "rgba(153, 204, 102, 0.3)";
 const greenStroke = "#04a700";
 const orangeFill = 'rgba(227, 140, 68, 0.3)';
 const orangeStroke = 'darkorange';
@@ -322,7 +322,6 @@ function drawFind(id, findIndex) {
 
   curStep = id;
 
-  console.log(cartesianArr);
   drawViz(curTree, cartesianArr, { drawControlArrows: "find" });
 }
 
@@ -674,7 +673,6 @@ function updateButtonStates(id, type) {
 
   // update BBOX buttons
   for (let i = 0; i <= bboxID; i++ ) {
-    console.log("bbox", i);
     rtreeSteps[i].subSteps.bbox = true;
   }
   // color all nodes after this gray
