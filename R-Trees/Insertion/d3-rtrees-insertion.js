@@ -301,7 +301,10 @@ function drawFind(id, findIndex) {
   //   return x;
   // });
 
-  const parentNode = curTree.data.children[findIndex];
+  // highlight the parent node a different color, so the expanded area is visible
+  console.log('id', id, JSON.parse(JSON.stringify(curTree.data)));
+  let parentNode = curTree.data.children[findIndex];
+  if (curTree.data.height === 1) parentNode = curTree.data;
   if (parentNode) parentNode.fill = 'rgba(150, 150, 255, 0.2)';
   
   // append just the new node to be inserted 
